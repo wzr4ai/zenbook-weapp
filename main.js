@@ -1,12 +1,15 @@
 import { createSSRApp } from 'vue';
+import { createPinia } from 'pinia';
+import piniaPersist from 'pinia-plugin-persistedstate';
 
 import App from './App.vue';
-import { createPinia } from './store/pinia-lite';
 import { useUserStore } from './store/user';
 
 export function createApp() {
   const app = createSSRApp(App);
-  app.use(createPinia());
+  const pinia = createPinia();
+  pinia.use(piniaPersist);
+  app.use(pinia);
 
   setupGuards();
 

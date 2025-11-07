@@ -3,21 +3,21 @@
     <view class="section">
       <text class="label">地点</text>
       <picker :value="locationIndex" :range="locations" range-key="name" @change="onLocationChange">
-        <view class="picker">{{ selectedLocation?.name || '请选择地点' }}</view>
+        <view class="picker">{{ (selectedLocation && selectedLocation.name) || '请选择地点' }}</view>
       </picker>
     </view>
 
     <view class="section">
       <text class="label">技师</text>
       <picker :value="technicianIndex" :range="technicians" range-key="display_name" @change="onTechnicianChange">
-        <view class="picker">{{ selectedTechnician?.display_name || '请选择技师' }}</view>
+        <view class="picker">{{ (selectedTechnician && selectedTechnician.display_name) || '请选择技师' }}</view>
       </picker>
     </view>
 
     <view class="section">
       <text class="label">服务</text>
       <picker :value="serviceIndex" :range="services" range-key="name" @change="onServiceChange">
-        <view class="picker">{{ selectedService?.name || '请选择服务' }}</view>
+        <view class="picker">{{ (selectedService && selectedService.name) || '请选择服务' }}</view>
       </picker>
     </view>
 

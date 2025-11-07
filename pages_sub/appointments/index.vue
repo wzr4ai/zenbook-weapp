@@ -14,7 +14,7 @@
 
 <script setup>
 import { onMounted, ref } from 'vue';
-import dayjs from '../../shared/dayjs-lite';
+import dayjs from 'dayjs';
 import appointmentsApi from '../../api/appointments';
 
 const appointments = ref([]);

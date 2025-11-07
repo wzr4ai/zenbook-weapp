@@ -2,16 +2,16 @@
   <view class="container">
     <view class="section">
       <text class="title">预约信息</text>
-      <view>地点：{{ bookingStore.selectedLocation?.name }}</view>
-      <view>技师：{{ bookingStore.selectedTechnician?.display_name }}</view>
-      <view>服务：{{ bookingStore.selectedService?.name }}</view>
+      <view>地点：{{ bookingStore.selectedLocation && bookingStore.selectedLocation.name }}</view>
+      <view>技师：{{ bookingStore.selectedTechnician && bookingStore.selectedTechnician.display_name }}</view>
+      <view>服务：{{ bookingStore.selectedService && bookingStore.selectedService.name }}</view>
       <view>时间：{{ slotText }}</view>
     </view>
 
     <view class="section">
       <text class="title">就诊人</text>
       <picker :value="patientIndex" :range="patients" range-key="full_name" @change="onPatientChange">
-        <view class="picker">{{ currentPatient?.full_name || '请选择就诊人' }}</view>
+        <view class="picker">{{ (currentPatient && currentPatient.full_name) || '请选择就诊人' }}</view>
       </picker>
     </view>
 
@@ -21,7 +21,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import dayjs from '../../shared/dayjs-lite';
+import dayjs from 'dayjs';
 import appointmentsApi from '../../api/appointments';
 import usersApi from '../../api/users';
 import { useBookingStore } from '../../store/booking';
@@ -32,9 +32,7 @@ const patientIndex = ref(0);
 
 const slotText = computed(() => {
   if (!bookingStore.selectedSlot) return '';
-  return `${dayjs(bookingStore.selectedSlot.start).format('MM-DD HH:mm')} - ${dayjs(bookingStore.selectedSlot.end).format(
-    'HH:mm',
-  )}`;
+  return `${dayjs(bookingStore.selectedSlot.start).format('MM-DD HH:mm')} - ${dayjs(bookingStore.selectedSlot.end).format('HH:mm')}`;
 });
 
 const currentPatient = computed(() => patients.value[patientIndex.value]);
@@ -49,7 +47,8 @@ onMounted(async () => {
 
 function onPatientChange(e) {
   patientIndex.value = Number(e.detail.value);
-  bookingStore.selectedPatientId = patients.value[patientIndex.value]?.patient_id;
+  const current = patients.value[patientIndex.value];
+  bookingStore.selectedPatientId = current ? current.patient_id : '';
 }
 
 async function submit() {
@@ -57,8 +56,9 @@ async function submit() {
     uni.showToast({ title: '缺少必要信息', icon: 'none' });
     return;
   }
+  const offeringId = bookingStore.selectedOffering.offering_id;
   await appointmentsApi.create({
-    offering_id: bookingStore.selectedOffering?.offering_id,
+    offering_id: offeringId,
     patient_id: bookingStore.selectedPatientId,
     start_time: bookingStore.selectedSlot.start,
     notes: '',

@@ -7,13 +7,7 @@
     </view>
 
     <view class="slots">
-      <view
-        v-for="slot in availability"
-        :key="slot.start"
-        class="slot"
-        :class="{ active: bookingStore.selectedSlot?.start === slot.start }"
-        @click="selectSlot(slot)"
-      >
+      <view v-for="slot in availability" :key="slot.start" class="slot" :class="{ active: isSlotSelected(slot) }" @click="selectSlot(slot)">
         {{ format(slot.start) }} - {{ format(slot.end) }}
       </view>
     </view>
@@ -24,7 +18,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import dayjs from '../../shared/dayjs-lite';
+import dayjs from 'dayjs';
 import scheduleApi from '../../api/schedule';
 import { useBookingStore } from '../../store/booking';
 
@@ -68,6 +62,10 @@ async function fetchAvailability() {
 
 function selectSlot(slot) {
   bookingStore.selectedSlot = slot;
+}
+
+function isSlotSelected(slot) {
+  return Boolean(bookingStore.selectedSlot && bookingStore.selectedSlot.start === slot.start);
 }
 
 function format(value) {

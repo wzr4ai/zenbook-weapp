@@ -1,7 +1,7 @@
 <template>
   <view class="container">
     <view class="card">
-      <text class="name">{{ userStore.userInfo?.display_name || '未登录' }}</text>
+      <text class="name">{{ (userStore.userInfo && userStore.userInfo.display_name) || '未登录' }}</text>
       <text class="role">{{ userStore.role || '-' }}</text>
     </view>
 
@@ -21,7 +21,8 @@ async function handleLogin() {
   try {
     await userStore.login();
   } catch (error) {
-    uni.showToast({ title: error?.message || '登录失败', icon: 'none' });
+    const message = (error && error.message) || '登录失败';
+    uni.showToast({ title: message, icon: 'none' });
   }
 }
 

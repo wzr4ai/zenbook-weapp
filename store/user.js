@@ -1,4 +1,4 @@
-import { defineStore } from './pinia-lite';
+import { defineStore } from 'pinia';
 import authApi from '../api/auth';
 
 export const useUserStore = defineStore('user', {
@@ -8,10 +8,11 @@ export const useUserStore = defineStore('user', {
   }),
   getters: {
     role(state) {
-      return state.userInfo?.role || '';
+      return (state.userInfo && state.userInfo.role) || '';
     },
     isAdmin(state) {
-      return ['admin', 'technician'].includes(state.userInfo?.role);
+      const role = state.userInfo ? state.userInfo.role : '';
+      return ['admin', 'technician'].includes(role);
     },
   },
   actions: {
