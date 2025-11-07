@@ -1,0 +1,24 @@
+{
+  "name": "tuina-miniapp",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "hbx-cli dev",
+    "build:weapp": "hbx-cli build mp-weixin --minimize",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "^3.0.0",
+    "@dcloudio/uni-ui": "^1.5.5",
+    "pinia": "^2.1.7",
+    "dayjs": "^1.11.11",
+    "pinia-plugin-persistedstate": "^3.2.0",
+    "vue": "^3.4.0"
+  },
+  "devDependencies": {
+    "@types/uni-app": "^3.5.8",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5",
+    "unplugin-auto-import": "^0.17.5"
+  }
+}
