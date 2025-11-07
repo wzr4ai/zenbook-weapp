@@ -21,7 +21,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import dayjs from 'dayjs';
+import dayjs from '../../shared/dayjs-lite';
 import appointmentsApi from '../../api/appointments';
 import usersApi from '../../api/users';
 import { useBookingStore } from '../../store/booking';
