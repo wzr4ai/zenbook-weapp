@@ -26,11 +26,15 @@ export const useUserStore = defineStore('user', {
     isLoggedIn: (state) => Boolean(state.token),
     actualRole: (state) => state.userInfo?.role ?? '',
     viewRole: (state) => state.impersonateRole || state.userInfo?.role || '',
-    isCustomerView: (state, getters) => getters.viewRole === 'customer',
-    isStaffView: (state, getters) =>
-      ['admin', 'technician'].includes(getters.viewRole),
-    hasStaffAccess: (state) =>
-      ['admin', 'technician'].includes(state.userInfo?.role ?? '')
+    isCustomerView() {
+      return this.viewRole === 'customer'
+    },
+    isStaffView() {
+      return ['admin', 'technician'].includes(this.viewRole)
+    },
+    hasStaffAccess(state) {
+      return ['admin', 'technician'].includes(state.userInfo?.role ?? '')
+    }
   },
   actions: {
     async login() {
