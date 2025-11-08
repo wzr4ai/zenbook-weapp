@@ -26,6 +26,11 @@ hbx-cli build mp-weixin --minimize
 
 依照 `docs/FRONTEND.md` 与 `docs/PROJECT_PLAN.md`，每个阶段先执行 `hbx-cli build` 验证，再提交。
 
+## 🔐 配置文件
+
+1. 将 `manifest.json.example` 复制为 `manifest.json`，填写 AppID、权限等微信端敏感字段。
+2. 将 `.env.local.example` 复制为 `.env.local`，设置 `VITE_API_BASE` 等后端地址。`.env*` 与 `manifest.json` 已加入 `.gitignore`，避免将私密信息提交到仓库。
+
 ## 🗂️ 目录概览
 
 ```

@@ -21,3 +21,9 @@ dist
 *.sw?
 
 manifest.json
+
+# Environment configs (copy *.example, keep real files local)
+.env
+.env.*
+!.env.example
+!.env.*.example
