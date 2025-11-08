@@ -1,52 +1,255 @@
+
 <template>
-	<view class="content">
-		<image class="logo" src="/static/logo.png"></image>
-		<view class="text-area">
-			<text class="title">{{title}}</text>
-		</view>
-	</view>
+  <view class="page">
+    <view class="hero">
+      <view>
+        <text class="hero__subtitle">中医推拿 · 线上预约</text>
+        <text class="hero__title">ZenBook 养生馆</text>
+        <text class="hero__hint">三步完成预约，技师日程实时同步</text>
+      </view>
+      <button
+        size="mini"
+        class="hero__profile"
+        type="default"
+        @tap="goProfile"
+      >
+        {{ userStore.isLoggedIn ? '个人中心' : '登录' }}
+      </button>
+    </view>
+
+    <view class="card">
+      <text class="card__title">① 选择地点</text>
+      <picker mode="selector" :range="locations" range-key="name" @change="onLocationChange">
+        <view class="picker-value">
+          {{ bookingStore.selectedLocation?.name ?? '请选择' }}
+        </view>
+      </picker>
+    </view>
+
+    <view class="card">
+      <text class="card__title">② 选择技师</text>
+      <picker mode="selector" :range="technicians" range-key="name" @change="onTechnicianChange">
+        <view class="picker-value">
+          {{ bookingStore.selectedTechnician?.name ?? '请选择' }}
+        </view>
+      </picker>
+    </view>
+
+    <view class="card">
+      <text class="card__title">③ 选择服务</text>
+      <picker mode="selector" :range="services" range-key="name" @change="onServiceChange">
+        <view class="picker-value">
+          {{ bookingStore.selectedService?.name ?? '请选择' }}
+        </view>
+      </picker>
+    </view>
+
+    <view class="card card--summary" v-if="selectedOffering">
+      <text>{{ selectedOffering.service_name }} · {{ selectedOffering.duration }}min</text>
+      <text class="card__price">¥{{ selectedOffering.price }}</text>
+    </view>
+
+    <button
+      class="primary-btn"
+      type="primary"
+      :disabled="!canProceed || loading"
+      @tap="goBooking"
+    >
+      {{ loading ? '加载中...' : '查看可预约时间' }}
+    </button>
+
+    <view class="links">
+      <button size="mini" @tap="goAppointments">我的预约</button>
+      <button size="mini" @tap="goProfile">就诊人管理</button>
+      <button size="mini" v-if="userStore.isAdmin" @tap="goAdmin">
+        管理入口
+      </button>
+    </view>
+  </view>
 </template>
 
-<script>
-	export default {
-		data() {
-			return {
-				title: 'Hello'
-			}
-		},
-		onLoad() {
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import {
+  fetchLocations,
+  fetchTechnicians,
+  fetchServices
+} from '../../api/catalog'
+import { useBookingStore } from '../../store/booking'
+import { useUserStore } from '../../store/user'
 
-		},
-		methods: {
+type PickerChangeEvent = { detail: { value: number } }
 
-		}
-	}
+const bookingStore = useBookingStore()
+const userStore = useUserStore()
+
+const loading = ref(false)
+const locations = ref<any[]>([])
+const technicians = ref<any[]>([])
+const services = ref<any[]>([])
+const selectedOffering = computed(() => bookingStore.offerings[0] ?? null)
+
+const canProceed = computed(() => {
+  return (
+    Boolean(bookingStore.selectedLocation) &&
+    Boolean(bookingStore.selectedTechnician) &&
+    Boolean(bookingStore.selectedService)
+  )
+})
+
+const goProfile = () => {
+  uni.navigateTo({ url: '/pages_sub/profile/index' })
+}
+
+const goAppointments = () => {
+  uni.navigateTo({ url: '/pages_sub/appointments/index' })
+}
+
+const goAdmin = () => {
+  uni.navigateTo({ url: '/pages_admin/dashboard/index' })
+}
+
+const goBooking = async () => {
+  if (!canProceed.value) {
+    uni.showToast({ title: '请先完成选择', icon: 'none' })
+    return
+  }
+  await loadOfferings()
+  uni.navigateTo({ url: '/pages/booking/index' })
+}
+
+const onLocationChange = (event: PickerChangeEvent) => {
+  const item = locations.value?.[Number(event.detail.value)]
+  bookingStore.setLocation(item)
+  loadOfferings()
+}
+
+const onTechnicianChange = (event: PickerChangeEvent) => {
+  const item = technicians.value?.[Number(event.detail.value)]
+  bookingStore.setTechnician(item)
+  loadOfferings()
+}
+
+const onServiceChange = (event: PickerChangeEvent) => {
+  const item = services.value?.[Number(event.detail.value)]
+  bookingStore.setService(item)
+  loadOfferings()
+}
+
+const loadOfferings = async () => {
+  if (!canProceed.value) {
+    return
+  }
+  loading.value = true
+  try {
+    await bookingStore.loadOfferings({
+      location_id: bookingStore.selectedLocation?.id,
+      technician_id: bookingStore.selectedTechnician?.id,
+      service_id: bookingStore.selectedService?.id
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadCatalog = async () => {
+  loading.value = true
+  try {
+    const [loc, tech, svc] = await Promise.all([
+      fetchLocations(),
+      fetchTechnicians(),
+      fetchServices()
+    ])
+    locations.value = loc
+    technicians.value = tech
+    services.value = svc
+  } catch (error) {
+    console.error('failed to load catalog', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadCatalog()
+})
 </script>
 
-<style>
-	.content {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-	}
+<style scoped lang="scss">
+.page {
+  padding: 40rpx 32rpx 80rpx;
+}
 
-	.logo {
-		height: 200rpx;
-		width: 200rpx;
-		margin-top: 200rpx;
-		margin-left: auto;
-		margin-right: auto;
-		margin-bottom: 50rpx;
-	}
+.hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 32rpx;
 
-	.text-area {
-		display: flex;
-		justify-content: center;
-	}
+  &__subtitle {
+    font-size: 24rpx;
+    color: #7b7f8d;
+  }
 
-	.title {
-		font-size: 36rpx;
-		color: #8f8f94;
-	}
+  &__title {
+    display: block;
+    font-size: 48rpx;
+    font-weight: 700;
+    color: #111;
+  }
+
+  &__hint {
+    display: block;
+    font-size: 24rpx;
+    color: #7b7f8d;
+  }
+
+  &__profile {
+    border-radius: 999px;
+  }
+}
+
+.card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 10rpx 40rpx rgba(17, 17, 17, 0.05);
+
+  &__title {
+    display: block;
+    font-size: 28rpx;
+    margin-bottom: 12rpx;
+  }
+
+  &__price {
+    font-size: 32rpx;
+    color: #111;
+    font-weight: 600;
+  }
+
+  &--summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.picker-value {
+  padding: 20rpx;
+  background: #f5f6fb;
+  border-radius: 12rpx;
+}
+
+.primary-btn {
+  width: 100%;
+  margin: 16rpx 0 24rpx;
+  border-radius: 999px;
+}
+
+.links {
+  display: flex;
+  gap: 16rpx;
+  justify-content: center;
+}
 </style>

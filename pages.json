@@ -1,17 +1,80 @@
 {
-	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
-		{
-			"path": "pages/index/index",
-			"style": {
-				"navigationBarTitleText": "uni-app"
-			}
-		}
-	],
-	"globalStyle": {
-		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "uni-app",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
-	},
-	"uniIdRouter": {}
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "ZenBook 预约",
+        "navigationBarBackgroundColor": "#ffffff"
+      }
+    },
+    {
+      "path": "pages/booking/index",
+      "style": {
+        "navigationBarTitleText": "选择时间"
+      }
+    },
+    {
+      "path": "pages/confirm/index",
+      "style": {
+        "navigationBarTitleText": "确认预约"
+      }
+    }
+  ],
+  "subPackages": [
+    {
+      "root": "pages_sub",
+      "pages": [
+        {
+          "path": "profile/index",
+          "style": { "navigationBarTitleText": "个人中心" }
+        },
+        {
+          "path": "patients/index",
+          "style": { "navigationBarTitleText": "就诊人管理" }
+        },
+        {
+          "path": "appointments/index",
+          "style": {
+            "navigationBarTitleText": "我的预约",
+            "enablePullDownRefresh": true
+          }
+        },
+        {
+          "path": "appointment_detail/index",
+          "style": { "navigationBarTitleText": "预约详情" }
+        }
+      ]
+    },
+    {
+      "root": "pages_admin",
+      "pages": [
+        {
+          "path": "dashboard/index",
+          "style": { "navigationBarTitleText": "管理看板" }
+        },
+        {
+          "path": "appt_create/index",
+          "style": { "navigationBarTitleText": "手动预约" }
+        },
+        {
+          "path": "schedule_mgmt/index",
+          "style": { "navigationBarTitleText": "排班管理" }
+        },
+        {
+          "path": "catalog_mgmt/index",
+          "style": { "navigationBarTitleText": "目录管理" }
+        },
+        {
+          "path": "user_mgmt/index",
+          "style": { "navigationBarTitleText": "账户 / 就诊人" }
+        }
+      ]
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "ZenBook",
+    "navigationBarBackgroundColor": "#ffffff",
+    "backgroundColor": "#f5f6fb"
+  }
 }

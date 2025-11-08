@@ -1,17 +1,18 @@
-<script>
-	export default {
-		onLaunch: function() {
-			console.log('App Launch')
-		},
-		onShow: function() {
-			console.log('App Show')
-		},
-		onHide: function() {
-			console.log('App Hide')
-		}
-	}
+<script setup lang="ts">
+import { onLaunch } from '@dcloudio/uni-app'
+import { useUserStore } from './store/user'
+
+const userStore = useUserStore()
+
+onLaunch(() => {
+  console.log('ZenBook WeApp Launch')
+  userStore.hydrateProfile()
+})
 </script>
 
-<style>
-	/*每个页面公共css */
+<style lang="scss">
+page {
+  background: #f5f6fb;
+  font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+}
 </style>

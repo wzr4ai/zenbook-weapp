@@ -1,0 +1,233 @@
+<template>
+  <scroll-view class="page" scroll-y>
+    <view class="panel">
+      <text class="panel__title">地点</text>
+      <view v-for="loc in locations" :key="loc.id" class="list-item">
+        <text>{{ loc.name }} · {{ loc.address }}</text>
+        <button size="mini" type="warn" @tap="deleteLocation(loc.id)">删除</button>
+      </view>
+      <view class="form-item">
+        <input v-model="locationForm.name" placeholder="地点名称" class="input" />
+        <input v-model="locationForm.address" placeholder="详细地址" class="input" />
+        <button size="mini" type="primary" @tap="saveLocation">新增地点</button>
+      </view>
+    </view>
+
+    <view class="panel">
+      <text class="panel__title">技师</text>
+      <view v-for="tech in technicians" :key="tech.id" class="list-item">
+        <text>{{ tech.name }} · {{ tech.specialty }}</text>
+        <button size="mini" type="warn" @tap="deleteTechnician(tech.id)">删除</button>
+      </view>
+      <view class="form-item">
+        <input v-model="technicianForm.name" placeholder="姓名" class="input" />
+        <input v-model="technicianForm.specialty" placeholder="专长" class="input" />
+        <textarea v-model="technicianForm.description" placeholder="简介" class="textarea" />
+        <button size="mini" type="primary" @tap="saveTechnician">新增技师</button>
+      </view>
+    </view>
+
+    <view class="panel">
+      <text class="panel__title">服务</text>
+      <view v-for="svc in services" :key="svc.id" class="list-item">
+        <text>{{ svc.name }} · {{ svc.duration }}min</text>
+        <button size="mini" type="warn" @tap="deleteService(svc.id)">删除</button>
+      </view>
+      <view class="form-item">
+        <input v-model="serviceForm.name" placeholder="服务名称" class="input" />
+        <input v-model.number="serviceForm.duration" type="number" placeholder="时长(分钟)" class="input" />
+        <input v-model.number="serviceForm.concurrency" type="number" placeholder="并发数" class="input" />
+        <button size="mini" type="primary" @tap="saveService">新增服务</button>
+      </view>
+    </view>
+
+    <view class="panel">
+      <text class="panel__title">组合套餐 (Offering)</text>
+      <view v-for="item in offerings" :key="item.id" class="list-item">
+        <text>{{ item.location_name }} / {{ item.technician_name }} / {{ item.service_name }} · ¥{{ item.price }}</text>
+        <button size="mini" type="warn" @tap="deleteOffering(item.id)">删除</button>
+      </view>
+      <view class="form-item">
+        <picker mode="selector" :range="locations" range-key="name" @change="onOfferingLocationChange">
+          <view class="picker-value">{{ offeringSelections.location?.name ?? '选择地点' }}</view>
+        </picker>
+        <picker mode="selector" :range="technicians" range-key="name" @change="onOfferingTechnicianChange">
+          <view class="picker-value">{{ offeringSelections.technician?.name ?? '选择技师' }}</view>
+        </picker>
+        <picker mode="selector" :range="services" range-key="name" @change="onOfferingServiceChange">
+          <view class="picker-value">{{ offeringSelections.service?.name ?? '选择服务' }}</view>
+        </picker>
+        <input v-model.number="offeringForm.price" type="number" placeholder="价格" class="input" />
+        <input v-model.number="offeringForm.duration" type="number" placeholder="定制时长(可选)" class="input" />
+        <button size="mini" type="primary" @tap="saveOffering">保存组合</button>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+
+<script setup lang="ts">
+import { reactive, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
+import {
+  fetchLocations,
+  fetchTechnicians,
+  fetchServices,
+  fetchOfferings,
+  adminUpsertLocation,
+  adminUpsertTechnician,
+  adminUpsertService,
+  adminUpsertOffering,
+  adminDeleteLocation,
+  adminDeleteTechnician,
+  adminDeleteService,
+  adminDeleteOffering
+} from '../../api/catalog'
+
+type PickerChangeEvent = { detail: { value: number } }
+
+const locations = ref<any[]>([])
+const technicians = ref<any[]>([])
+const services = ref<any[]>([])
+const offerings = ref<any[]>([])
+
+const locationForm = reactive({ name: '', address: '' })
+const technicianForm = reactive({ name: '', specialty: '', description: '' })
+const serviceForm = reactive({ name: '', duration: 60, concurrency: 1 })
+const offeringForm = reactive({ price: 0, duration: 0 })
+const offeringSelections = reactive<{ location: any | null; technician: any | null; service: any | null }>({
+  location: null,
+  technician: null,
+  service: null
+})
+
+const onOfferingLocationChange = (event: PickerChangeEvent) => {
+  offeringSelections.location = locations.value[Number(event.detail.value)]
+}
+
+const onOfferingTechnicianChange = (event: PickerChangeEvent) => {
+  offeringSelections.technician = technicians.value[Number(event.detail.value)]
+}
+
+const onOfferingServiceChange = (event: PickerChangeEvent) => {
+  offeringSelections.service = services.value[Number(event.detail.value)]
+}
+
+const loadAll = async () => {
+  const [loc, tech, svc, off] = await Promise.all([
+    fetchLocations(),
+    fetchTechnicians(),
+    fetchServices(),
+    fetchOfferings()
+  ])
+  locations.value = loc
+  technicians.value = tech
+  services.value = svc
+  offerings.value = off
+}
+
+const saveLocation = async () => {
+  await adminUpsertLocation(locationForm)
+  Object.assign(locationForm, { name: '', address: '' })
+  uni.showToast({ title: '已保存', icon: 'success' })
+  loadAll()
+}
+
+const saveTechnician = async () => {
+  await adminUpsertTechnician(technicianForm)
+  Object.assign(technicianForm, { name: '', specialty: '', description: '' })
+  uni.showToast({ title: '已保存', icon: 'success' })
+  loadAll()
+}
+
+const saveService = async () => {
+  await adminUpsertService(serviceForm)
+  Object.assign(serviceForm, { name: '', duration: 60, concurrency: 1 })
+  uni.showToast({ title: '已保存', icon: 'success' })
+  loadAll()
+}
+
+const saveOffering = async () => {
+  if (!(offeringSelections.location && offeringSelections.technician && offeringSelections.service)) {
+    uni.showToast({ title: '请选择地点/技师/服务', icon: 'none' })
+    return
+  }
+  await adminUpsertOffering({
+    location_id: offeringSelections.location.id,
+    technician_id: offeringSelections.technician.id,
+    service_id: offeringSelections.service.id,
+    price: offeringForm.price,
+    duration: offeringForm.duration || undefined
+  })
+  offeringForm.price = 0
+  offeringForm.duration = 0
+  uni.showToast({ title: '已保存', icon: 'success' })
+  loadAll()
+}
+
+const confirmDelete = (action: () => Promise<void>) => {
+  uni.showModal({
+    title: '确认删除',
+    success: async ({ confirm }) => {
+      if (confirm) {
+        await action()
+        uni.showToast({ title: '已删除', icon: 'none' })
+        loadAll()
+      }
+    }
+  })
+}
+
+const deleteLocation = (id: string) => confirmDelete(() => adminDeleteLocation(id))
+const deleteTechnician = (id: string) => confirmDelete(() => adminDeleteTechnician(id))
+const deleteService = (id: string) => confirmDelete(() => adminDeleteService(id))
+const deleteOffering = (id: string) => confirmDelete(() => adminDeleteOffering(id))
+
+onShow(loadAll)
+</script>
+
+<style scoped lang="scss">
+.page {
+  height: 100vh;
+  padding: 32rpx;
+}
+
+.panel {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+
+  &__title {
+    font-size: 30rpx;
+    font-weight: 600;
+    margin-bottom: 16rpx;
+  }
+}
+
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.form-item {
+  margin-top: 16rpx;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  background: #f5f6fb;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  margin-bottom: 12rpx;
+}
+
+.picker-value {
+  padding: 16rpx;
+  background: #f5f6fb;
+  border-radius: 12rpx;
+  margin-bottom: 12rpx;
+}
+</style>
