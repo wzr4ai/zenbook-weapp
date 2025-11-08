@@ -23,7 +23,7 @@ export const setupNavigationGuards = (pinia) => {
         if (!isAdminPage(options.url)) {
           return options
         }
-        if (userStore.isAdmin) {
+        if (userStore.hasStaffAccess) {
           return options
         }
         uni.showToast({

@@ -8,6 +8,13 @@
       }
     },
     {
+      "path": "pages/me/index",
+      "style": {
+        "navigationBarTitleText": "我的",
+        "navigationBarBackgroundColor": "#ffffff"
+      }
+    },
+    {
       "path": "pages/booking/index",
       "style": {
         "navigationBarTitleText": "选择时间"
@@ -24,10 +31,6 @@
     {
       "root": "pages_sub",
       "pages": [
-        {
-          "path": "profile/index",
-          "style": { "navigationBarTitleText": "个人中心" }
-        },
         {
           "path": "patients/index",
           "style": { "navigationBarTitleText": "就诊人管理" }
@@ -71,6 +74,26 @@
       ]
     }
   ],
+  "tabBar": {
+    "color": "#7A7E83",
+    "selectedColor": "#007aff",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "预约",
+        "iconPath": "static/tab-home.png",
+        "selectedIconPath": "static/tab-home.png"
+      },
+      {
+        "pagePath": "pages/me/index",
+        "text": "我的",
+        "iconPath": "static/tab-me.png",
+        "selectedIconPath": "static/tab-me.png"
+      }
+    ]
+  },
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "ZenBook",

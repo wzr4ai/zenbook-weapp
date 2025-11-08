@@ -36,8 +36,8 @@ hbx-cli build mp-weixin --minimize
 ```
 ├─ api/            # REST 调用封装（auth/catalog/schedule/appointments/patients）
 ├─ components/     # Calendar、TimeSlotGrid、BookingCard 等复用组件
-├─ pages/          # 客户主流程：index -> booking -> confirm
-├─ pages_sub/      # 低频能力：profile/patients/appointments/appointment_detail
+├─ pages/          # 客户主流程：index -> booking -> confirm、以及 tab“我的”
+├─ pages_sub/      # 低频能力：patients/appointments/appointment_detail
 ├─ pages_admin/    # 管理端分包：dashboard/appt_create/schedule_mgmt/catalog_mgmt
 ├─ store/          # Pinia (user / booking)
 ├─ router/guards.js# 路由守卫（管理员专属页面拦截）
@@ -48,10 +48,10 @@ hbx-cli build mp-weixin --minimize
 
 | 页面 | 说明 |
 | --- | --- |
-| `pages/index` | 级联选择地点/技师/服务，跳转可用时间 |
+| `pages/index` | Tab 第一页：客户视角为预约入口；管理员/技师视角为预约管理面板 |
+| `pages/me` | Tab 第二页：“我的”视图，含身份切换（管理员专享）与快捷入口 |
 | `pages/booking` | 展示日历与时间槽，选槽后进入确认页 |
 | `pages/confirm` | 选择就诊人、填写备注并提交预约 |
-| `pages_sub/profile` | 登录、账户信息、入口到就诊人与预约列表 |
 | `pages_sub/appointments` | 个人预约列表，点击到详情并允许取消 |
 | `pages_admin/dashboard` | 管理员预约总览，可跳转手动预约 |
 
@@ -60,6 +60,6 @@ hbx-cli build mp-weixin --minimize
 - Pinia + 自研 `store/plugins/persist` 按 store 维度落盘，满足 docs 要求的 “token & role 持久化”。
 - `api/request.js` 统一注入 `Authorization`，并对 401/403 做退出/提示。
 - 客户预约流程的级联筛选、Offerings/Availability 均走 `store/booking` 的 action；页面只关心展示交互。
-- 管理页入口通过 `router/guards` 做 run-time 校验，额外在 `pages_sub/profile` 中渲染“进入管理后台”按钮。
+- 管理页入口通过 `router/guards` 做 run-time 校验，管理员可在 `pages/me` 中切换视角测试不同身份。
 
 更多交互规范请参考 `docs/FRONTEND.md`；接口契约参考 `docs/API.md`；场景说明见 `docs/PROJECT_PLAN.md`。

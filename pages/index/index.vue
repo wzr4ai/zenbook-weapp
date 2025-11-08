@@ -1,6 +1,33 @@
 
 <template>
-  <view class="page">
+  <view class="page" v-if="userStore.isStaffView">
+    <view class="hero hero--staff">
+      <view>
+        <text class="hero__subtitle">管理视角</text>
+        <text class="hero__title">
+          {{ userStore.userInfo?.display_name || '管理员' }}
+        </text>
+        <text class="hero__hint">预约一览 · 快速操作</text>
+      </view>
+      <button size="mini" class="hero__profile" @tap="goProfile">
+        去“我的”
+      </button>
+    </view>
+    <view class="admin-panel">
+      <AdminDashboardPanel
+        :appointments="appointments"
+        :today-count="todayCount"
+        :pending-count="pendingCount"
+        :cancelled-count="cancelledCount"
+        @create="goApptCreate"
+        @schedule="goSchedule"
+        @catalog="goCatalog"
+        @users="goUsers"
+        @edit="editAppointment"
+      />
+    </view>
+  </view>
+  <view class="page" v-else>
     <view class="hero">
       <view>
         <text class="hero__subtitle">中医推拿 · 线上预约</text>
@@ -13,7 +40,7 @@
         type="default"
         @tap="goProfile"
       >
-        {{ userStore.isLoggedIn ? '个人中心' : '登录' }}
+        {{ userStore.isLoggedIn ? '我的' : '登录' }}
       </button>
     </view>
 
@@ -60,16 +87,14 @@
 
     <view class="links">
       <button size="mini" @tap="goAppointments">我的预约</button>
-      <button size="mini" @tap="goProfile">就诊人管理</button>
-      <button size="mini" v-if="userStore.isAdmin" @tap="goAdmin">
-        管理入口
-      </button>
+      <button size="mini" @tap="goPatients">就诊人管理</button>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import {
   fetchLocations,
   fetchTechnicians,
@@ -77,6 +102,8 @@ import {
 } from '../../api/catalog'
 import { useBookingStore } from '../../store/booking'
 import { useUserStore } from '../../store/user'
+import AdminDashboardPanel from '../../components/AdminDashboardPanel.vue'
+import { useAdminDashboard } from '../../composables/useAdminDashboard'
 
 type PickerChangeEvent = { detail: { value: number } }
 
@@ -84,10 +111,20 @@ const bookingStore = useBookingStore()
 const userStore = useUserStore()
 
 const loading = ref(false)
+const catalogLoaded = ref(false)
 const locations = ref<any[]>([])
 const technicians = ref<any[]>([])
 const services = ref<any[]>([])
 const selectedOffering = computed(() => bookingStore.offerings[0] ?? null)
+const isStaffView = computed(() => userStore.isStaffView)
+
+const {
+  appointments,
+  todayCount,
+  pendingCount,
+  cancelledCount,
+  fetchAppointments
+} = useAdminDashboard(false)
 
 const canProceed = computed(() => {
   return (
@@ -98,15 +135,31 @@ const canProceed = computed(() => {
 })
 
 const goProfile = () => {
-  uni.navigateTo({ url: '/pages_sub/profile/index' })
+  uni.switchTab({ url: '/pages/me/index' })
 }
 
 const goAppointments = () => {
   uni.navigateTo({ url: '/pages_sub/appointments/index' })
 }
 
-const goAdmin = () => {
-  uni.navigateTo({ url: '/pages_admin/dashboard/index' })
+const goPatients = () => {
+  uni.navigateTo({ url: '/pages_sub/patients/index' })
+}
+
+const goApptCreate = () => {
+  uni.navigateTo({ url: '/pages_admin/appt_create/index' })
+}
+const goSchedule = () => {
+  uni.navigateTo({ url: '/pages_admin/schedule_mgmt/index' })
+}
+const goCatalog = () => {
+  uni.navigateTo({ url: '/pages_admin/catalog_mgmt/index' })
+}
+const goUsers = () => {
+  uni.navigateTo({ url: '/pages_admin/user_mgmt/index' })
+}
+const editAppointment = (id: string) => {
+  uni.navigateTo({ url: `/pages_admin/appt_create/index?id=${id}` })
 }
 
 const goBooking = async () => {
@@ -153,6 +206,9 @@ const loadOfferings = async () => {
 }
 
 const loadCatalog = async () => {
+  if (catalogLoaded.value) {
+    return
+  }
   loading.value = true
   try {
     const [loc, tech, svc] = await Promise.all([
@@ -163,6 +219,7 @@ const loadCatalog = async () => {
     locations.value = loc
     technicians.value = tech
     services.value = svc
+    catalogLoaded.value = true
   } catch (error) {
     console.error('failed to load catalog', error)
   } finally {
@@ -170,8 +227,28 @@ const loadCatalog = async () => {
   }
 }
 
+const ensureViewData = () => {
+  if (isStaffView.value) {
+    fetchAppointments()
+  } else {
+    loadCatalog()
+  }
+}
+
 onMounted(() => {
-  loadCatalog()
+  ensureViewData()
+})
+
+onShow(() => {
+  ensureViewData()
+})
+
+watch(isStaffView, () => {
+  if (isStaffView.value) {
+    fetchAppointments()
+  } else {
+    loadCatalog()
+  }
 })
 </script>
 
@@ -207,6 +284,14 @@ onMounted(() => {
   &__profile {
     border-radius: 999px;
   }
+}
+
+.hero--staff {
+  margin-bottom: 8rpx;
+}
+
+.admin-panel {
+  margin-top: 24rpx;
 }
 
 .card {
