@@ -30,10 +30,24 @@ export const adminUpsertLocation = (payload) =>
     data: payload
   })
 
+export const adminUpdateLocation = (id, payload) =>
+  request({
+    url: `/admin/catalog/locations/${id}`,
+    method: 'PUT',
+    data: payload
+  })
+
 export const adminUpsertTechnician = (payload) =>
   request({
     url: '/admin/catalog/technicians',
     method: 'POST',
+    data: payload
+  })
+
+export const adminUpdateTechnician = (id, payload) =>
+  request({
+    url: `/admin/catalog/technicians/${id}`,
+    method: 'PUT',
     data: payload
   })
 
@@ -44,10 +58,24 @@ export const adminUpsertService = (payload) =>
     data: payload
   })
 
+export const adminUpdateService = (id, payload) =>
+  request({
+    url: `/admin/catalog/services/${id}`,
+    method: 'PUT',
+    data: payload
+  })
+
 export const adminUpsertOffering = (payload) =>
   request({
     url: '/admin/catalog/offerings',
     method: 'POST',
+    data: payload
+  })
+
+export const adminUpdateOffering = (id, payload) =>
+  request({
+    url: `/admin/catalog/offerings/${id}`,
+    method: 'PUT',
     data: payload
   })
 
