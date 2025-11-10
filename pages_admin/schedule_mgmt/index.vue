@@ -51,7 +51,7 @@
           <view v-for="item in filteredBusinessHours" :key="item.id" class="list-item">
             <view class="list-item__info">
               <text class="list-item__title">
-                周{{ weekdayLabel(item.day_of_week) }}（{{ weekdayDateLabel(item.day_of_week) }}）
+                周{{ weekdayLabel(item.day_of_week) }}（{{ formatRuleDate(item.rule_date, item.day_of_week) }}）
               </text>
               <view class="badge-group">
                 <text
@@ -254,7 +254,15 @@ const weekRangeLabel = computed(() => {
   return `${monday ?? '--'} 至 ${sunday ?? '--'}`
 })
 
-const weekdayDateLabel = (weekday: number) => weekDates.value[weekday] ?? '--'
+const formatRuleDate = (ruleDate?: string | null, weekday?: number) => {
+  if (ruleDate) {
+    return ruleDate
+  }
+  if (typeof weekday === 'number') {
+    return weekDates.value[weekday] ?? '--'
+  }
+  return '--'
+}
 
 type PickerChangeEvent = { detail: { value: number } }
 type DatePickerChangeEvent = { detail: { value: string } }
@@ -318,6 +326,7 @@ const mapBusinessHour = (item: any) => ({
   location_id: item.location_id,
   technician_id: item.technician_id,
   day_of_week: item.day_of_week,
+  rule_date: item.rule_date,
   start_time_am: item.start_time_am,
   end_time_am: item.end_time_am,
   start_time_pm: item.start_time_pm,
@@ -348,7 +357,12 @@ const loadSelectors = async () => {
 
 const fetchData = async () => {
   const [hours, exs] = await Promise.all([listBusinessHours(), listExceptions()])
-  businessHours.value = hours.map(mapBusinessHour)
+  businessHours.value = hours.map(mapBusinessHour).sort((a, b) => {
+    if (a.rule_date && b.rule_date) {
+      return a.rule_date.localeCompare(b.rule_date)
+    }
+    return a.day_of_week - b.day_of_week
+  })
   exceptions.value = exs.map(mapException)
 }
 
@@ -357,16 +371,20 @@ const saveHour = async () => {
   const toCreate: any[] = []
   const toUpdate: { id: string; payload: Record<string, string> }[] = []
   let skipped = 0
-
   const periodField = { morning: 'am', afternoon: 'pm' } as const
+  const weekMap = weekDates.value
 
   for (const weekday of selectedWeekdays.value) {
-    const existing = filteredBusinessHours.value.find((hour) => hour.day_of_week === weekday)
+    const targetDate = weekMap[weekday]
+    if (!targetDate) {
+      continue
+    }
+    const existing = filteredBusinessHours.value.find((hour) => hour.rule_date === targetDate)
     if (!existing) {
       const payload: Record<string, any> = {
         technician_id: selectedTechnicianId.value,
         location_id: selectedLocationId.value,
-        day_of_week: weekday
+        rule_date: targetDate
       }
       for (const period of selectedPeriods.value) {
         const defaults = periodDefaults[period]
