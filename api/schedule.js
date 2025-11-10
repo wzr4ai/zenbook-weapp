@@ -30,6 +30,13 @@ export const saveException = (payload) =>
     data: payload
   })
 
+export const updateBusinessHour = (id, payload) =>
+  request({
+    url: `/admin/schedule/business-hours/${id}`,
+    method: 'PUT',
+    data: payload
+  })
+
 export const deleteBusinessHour = (id) =>
   request({
     url: `/admin/schedule/business-hours/${id}`,

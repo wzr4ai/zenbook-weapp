@@ -44,10 +44,17 @@
         <view v-if="filteredBusinessHours.length">
           <view v-for="item in filteredBusinessHours" :key="item.id" class="list-item">
             <view class="list-item__info">
-              <text class="list-item__title">
-                周{{ weekdayLabel(item.day_of_week) }} {{ item.start }} - {{ item.end }}
-              </text>
-              <text class="tag tag--soft">{{ periodLabel(item.start) }}</text>
+              <text class="list-item__title">周{{ weekdayLabel(item.day_of_week) }}</text>
+              <view class="badge-group">
+                <text
+                  class="tag tag--soft"
+                  v-if="item.start_time_am && item.end_time_am"
+                >上午 {{ formatTime(item.start_time_am) }} - {{ formatTime(item.end_time_am) }}</text>
+                <text
+                  class="tag tag--soft"
+                  v-if="item.start_time_pm && item.end_time_pm"
+                >下午 {{ formatTime(item.start_time_pm) }} - {{ formatTime(item.end_time_pm) }}</text>
+              </view>
             </view>
             <button size="mini" type="warn" @tap="removeHour(item.id)">删除</button>
           </view>
@@ -144,6 +151,7 @@ import {
   listBusinessHours,
   listExceptions,
   saveBusinessHour,
+  updateBusinessHour,
   saveException,
   deleteBusinessHour,
   deleteException
@@ -206,17 +214,14 @@ const filteredExceptions = computed(() =>
   )
 )
 
-const formatTime = (value?: string) => {
+const formatTime = (value?: string | null) => {
   if (!value) return '--'
   return value.slice(0, 5)
 }
 
-const weekdayLabel = (value: number) => weekdayOptions.find((item) => item.value === value)?.label ?? value
+const hasSlot = (start?: string | null, end?: string | null) => Boolean(start && end)
 
-const periodLabel = (start: string) => {
-  if (!start) return '班次'
-  return start < '13:00' ? '上午' : '下午'
-}
+const weekdayLabel = (value: number) => weekdayOptions.find((item) => item.value === value)?.label ?? value
 
 type PickerChangeEvent = { detail: { value: number } }
 
@@ -270,18 +275,16 @@ const ensureSelection = () => {
   return true
 }
 
-const mapBusinessHour = (item: any) => {
-  const start = formatTime(item.start_time)
-  return {
-    id: item.rule_id,
-    location_id: item.location_id,
-    technician_id: item.technician_id,
-    day_of_week: item.day_of_week,
-    start,
-    end: formatTime(item.end_time),
-    period: start < '13:00' ? 'morning' : 'afternoon'
-  }
-}
+const mapBusinessHour = (item: any) => ({
+  id: item.rule_id,
+  location_id: item.location_id,
+  technician_id: item.technician_id,
+  day_of_week: item.day_of_week,
+  start_time_am: item.start_time_am,
+  end_time_am: item.end_time_am,
+  start_time_pm: item.start_time_pm,
+  end_time_pm: item.end_time_pm
+})
 
 const mapException = (item: any) => ({
   id: item.exception_id,
@@ -313,37 +316,66 @@ const fetchData = async () => {
 
 const saveHour = async () => {
   if (!ensureSelection()) return
-  const entries: any[] = []
+  const toCreate: any[] = []
+  const toUpdate: { id: string; payload: Record<string, string> }[] = []
   let skipped = 0
+
+  const periodField = { morning: 'am', afternoon: 'pm' } as const
+
   for (const weekday of selectedWeekdays.value) {
-    for (const period of selectedPeriods.value) {
-      const defaults = periodDefaults[period]
-      if (!defaults) continue
-      const exists = filteredBusinessHours.value.some(
-        (hour) => hour.day_of_week === weekday && hour.period === period
-      )
-      if (exists) {
-        skipped += 1
-        continue
-      }
-      entries.push({
+    const existing = filteredBusinessHours.value.find((hour) => hour.day_of_week === weekday)
+    if (!existing) {
+      const payload: Record<string, any> = {
         technician_id: selectedTechnicianId.value,
         location_id: selectedLocationId.value,
-        day_of_week: weekday,
-        start_time: defaults.start,
-        end_time: defaults.end
-      })
+        day_of_week: weekday
+      }
+      for (const period of selectedPeriods.value) {
+        const defaults = periodDefaults[period]
+        const suffix = periodField[period as keyof typeof periodField]
+        if (!defaults || !suffix) continue
+        payload[`start_time_${suffix}`] = defaults.start
+        payload[`end_time_${suffix}`] = defaults.end
+      }
+      toCreate.push(payload)
+    } else {
+      const updatePayload: Record<string, string> = {}
+      for (const period of selectedPeriods.value) {
+        const defaults = periodDefaults[period]
+        const suffix = periodField[period as keyof typeof periodField]
+        if (!defaults || !suffix) continue
+        const hasExisting =
+          suffix === 'am'
+            ? hasSlot(existing.start_time_am, existing.end_time_am)
+            : hasSlot(existing.start_time_pm, existing.end_time_pm)
+        if (hasExisting) {
+          skipped += 1
+          continue
+        }
+        updatePayload[`start_time_${suffix}`] = defaults.start
+        updatePayload[`end_time_${suffix}`] = defaults.end
+      }
+      if (Object.keys(updatePayload).length) {
+        toUpdate.push({ id: existing.id, payload: updatePayload })
+      }
     }
   }
-  if (!entries.length) {
+
+  if (!toCreate.length && !toUpdate.length) {
     uni.showToast({ title: skipped ? '选择的班次已存在' : '请选择班次', icon: 'none' })
     return
   }
-  await saveBusinessHour(entries)
+
+  if (toCreate.length) {
+    await saveBusinessHour(toCreate)
+  }
+  if (toUpdate.length) {
+    await Promise.all(toUpdate.map(({ id, payload }) => updateBusinessHour(id, payload)))
+  }
   uni.showToast({ title: '已保存', icon: 'success' })
   await fetchData()
   if (skipped) {
-    uni.showToast({ title: `${skipped} 个已存在，已跳过`, icon: 'none' })
+    uni.showToast({ title: `${skipped} 个班次已存在，已跳过`, icon: 'none' })
   }
 }
 
@@ -506,6 +538,13 @@ onShow(async () => {
   margin-left: 8rpx;
   font-size: 22rpx;
   color: #94a3b8;
+}
+
+.badge-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  margin-top: 8rpx;
 }
 
 .tag {
