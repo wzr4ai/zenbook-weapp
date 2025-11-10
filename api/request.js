@@ -14,6 +14,43 @@ const buildUrl = (url) => {
   return `${API_BASE}${needsPrefix ? API_PREFIX : ''}${url}`
 }
 
+const normalizeErrorMessage = (payload) => {
+  if (!payload) {
+    return ''
+  }
+  if (typeof payload === 'string') {
+    return payload
+  }
+  if (Array.isArray(payload)) {
+    const joined = payload
+      .map((item) => normalizeErrorMessage(item) || item?.msg || item?.message || '')
+      .filter(Boolean)
+      .join('; ')
+    return joined || JSON.stringify(payload)
+  }
+  if (typeof payload === 'object') {
+    if (typeof payload.message === 'string') {
+      return payload.message
+    }
+    if (typeof payload.msg === 'string') {
+      return payload.msg
+    }
+    const detail = normalizeErrorMessage(payload.detail)
+    if (detail) {
+      return detail
+    }
+    const error = normalizeErrorMessage(payload.error)
+    if (error) {
+      return error
+    }
+    if (typeof payload.reason === 'string') {
+      return payload.reason
+    }
+    return JSON.stringify(payload)
+  }
+  return String(payload)
+}
+
 export const request = ({ url, method = 'GET', data, header = {} }) => {
   const userStore = useUserStore()
   const finalHeader = {
@@ -49,7 +86,7 @@ export const request = ({ url, method = 'GET', data, header = {} }) => {
           reject(new Error('FORBIDDEN'))
           return
         }
-        const message = responseData?.message ?? responseData?.detail ?? '请求失败'
+        const message = normalizeErrorMessage(responseData) || '请求失败'
         uni.showToast({ title: message, icon: 'none' })
         reject(new Error(message))
       },

@@ -4,7 +4,7 @@
       <text class="panel__title">预约信息</text>
       <view class="summary">
         <text>{{ bookingStore.selectedService?.name }}</text>
-        <text>技师：{{ bookingStore.selectedTechnician?.name }}</text>
+        <text>技师：{{ bookingStore.selectedTechnician?.display_name }}</text>
         <text>地点：{{ bookingStore.selectedLocation?.name }}</text>
         <text>时间：{{ bookingStore.selectedSlot?.start }}</text>
       </view>

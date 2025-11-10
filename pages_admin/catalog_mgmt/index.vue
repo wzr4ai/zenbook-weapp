@@ -15,14 +15,22 @@
 
     <view class="panel">
       <text class="panel__title">技师</text>
-      <view v-for="tech in technicians" :key="tech.id" class="list-item">
-        <text>{{ tech.name }} · {{ tech.specialty }}</text>
+      <view v-for="tech in technicians" :key="tech.id" class="list-item list-item--tech">
+        <view class="list-item__info">
+          <text class="list-item__title">{{ tech.display_name }}</text>
+          <text class="list-item__desc">{{ tech.bio || '暂无简介' }}</text>
+          <text v-if="tech.restricted_by_quota" class="tag tag--warning">父亲限额受控</text>
+        </view>
         <button size="mini" type="warn" @tap="deleteTechnician(tech.id)">删除</button>
       </view>
       <view class="form-item">
-        <input v-model="technicianForm.name" placeholder="姓名" class="input" />
-        <input v-model="technicianForm.specialty" placeholder="专长" class="input" />
-        <textarea v-model="technicianForm.description" placeholder="简介" class="textarea" />
+        <input v-model="technicianForm.display_name" placeholder="姓名" class="input" />
+        <textarea v-model="technicianForm.bio" placeholder="简介 (可选)" class="textarea" />
+        <input v-model="technicianForm.avatar_url" placeholder="头像链接 (可选)" class="input" />
+        <label class="toggle">
+          <text>父亲限额限制</text>
+          <switch :checked="technicianForm.restricted_by_quota" @change="onQuotaToggle" />
+        </label>
         <button size="mini" type="primary" @tap="saveTechnician">新增技师</button>
       </view>
     </view>
@@ -51,8 +59,8 @@
         <picker mode="selector" :range="locations" range-key="name" @change="onOfferingLocationChange">
           <view class="picker-value">{{ offeringSelections.location?.name ?? '选择地点' }}</view>
         </picker>
-        <picker mode="selector" :range="technicians" range-key="name" @change="onOfferingTechnicianChange">
-          <view class="picker-value">{{ offeringSelections.technician?.name ?? '选择技师' }}</view>
+        <picker mode="selector" :range="technicians" range-key="display_name" @change="onOfferingTechnicianChange">
+          <view class="picker-value">{{ offeringSelections.technician?.display_name ?? '选择技师' }}</view>
         </picker>
         <picker mode="selector" :range="services" range-key="name" @change="onOfferingServiceChange">
           <view class="picker-value">{{ offeringSelections.service?.name ?? '选择服务' }}</view>
@@ -84,6 +92,7 @@ import {
 } from '../../api/catalog'
 
 type PickerChangeEvent = { detail: { value: number } }
+type SwitchChangeEvent = { detail: { value: boolean } }
 
 const locations = ref<any[]>([])
 const technicians = ref<any[]>([])
@@ -91,7 +100,12 @@ const services = ref<any[]>([])
 const offerings = ref<any[]>([])
 
 const locationForm = reactive({ name: '', address: '' })
-const technicianForm = reactive({ name: '', specialty: '', description: '' })
+const technicianForm = reactive({
+  display_name: '',
+  bio: '',
+  avatar_url: '',
+  restricted_by_quota: false
+})
 const serviceForm = reactive({ name: '', duration: 60, concurrency: 1 })
 const offeringForm = reactive({ price: 0, duration: 0 })
 const offeringSelections = reactive<{ location: any | null; technician: any | null; service: any | null }>({
@@ -99,6 +113,10 @@ const offeringSelections = reactive<{ location: any | null; technician: any | nu
   technician: null,
   service: null
 })
+
+const onQuotaToggle = (event: SwitchChangeEvent) => {
+  technicianForm.restricted_by_quota = Boolean(event.detail?.value)
+}
 
 const onOfferingLocationChange = (event: PickerChangeEvent) => {
   offeringSelections.location = locations.value[Number(event.detail.value)]
@@ -133,8 +151,22 @@ const saveLocation = async () => {
 }
 
 const saveTechnician = async () => {
-  await adminUpsertTechnician(technicianForm)
-  Object.assign(technicianForm, { name: '', specialty: '', description: '' })
+  if (!technicianForm.display_name.trim()) {
+    uni.showToast({ title: '请填写姓名', icon: 'none' })
+    return
+  }
+  await adminUpsertTechnician({
+    display_name: technicianForm.display_name,
+    bio: technicianForm.bio || undefined,
+    avatar_url: technicianForm.avatar_url || undefined,
+    restricted_by_quota: technicianForm.restricted_by_quota
+  })
+  Object.assign(technicianForm, {
+    display_name: '',
+    bio: '',
+    avatar_url: '',
+    restricted_by_quota: false
+  })
   uni.showToast({ title: '已保存', icon: 'success' })
   loadAll()
 }
@@ -211,8 +243,50 @@ onShow(loadAll)
   margin-bottom: 12rpx;
 }
 
+.list-item--tech {
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.list-item__info {
+  flex: 1;
+}
+
+.list-item__title {
+  display: block;
+  font-weight: 600;
+}
+
+.list-item__desc {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  color: #777;
+}
+
+.tag {
+  display: inline-block;
+  padding: 4rpx 12rpx;
+  border-radius: 999px;
+  font-size: 22rpx;
+  margin-top: 8rpx;
+
+  &--warning {
+    background: rgba(255, 149, 0, 0.1);
+    color: #ff9500;
+  }
+}
+
 .form-item {
   margin-top: 16rpx;
+}
+
+.toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8rpx 0;
+  color: #666;
 }
 
 .input,

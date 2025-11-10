@@ -20,9 +20,9 @@
 
       <view class="form-item">
         <text>技师</text>
-        <picker mode="selector" :range="technicians" range-key="name" @change="onTechnicianChange">
+        <picker mode="selector" :range="technicians" range-key="display_name" @change="onTechnicianChange">
           <view class="picker-value">
-            {{ selectedTechnician?.name ?? '选择技师' }}
+            {{ selectedTechnician?.display_name ?? '选择技师' }}
           </view>
         </picker>
       </view>
