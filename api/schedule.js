@@ -20,7 +20,7 @@ export const saveBusinessHour = (payload) =>
   request({
     url: '/admin/schedule/business-hours',
     method: 'POST',
-    data: payload
+    data: Array.isArray(payload) ? payload : [payload]
   })
 
 export const saveException = (payload) =>
