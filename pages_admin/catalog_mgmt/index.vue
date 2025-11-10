@@ -1,5 +1,11 @@
 <template>
   <scroll-view class="page" scroll-y>
+    <view class="page-header">
+      <view>
+        <text class="page-title">服务配置中心</text>
+        <text class="page-subtitle">维护门店、技师、服务及组合，确保前台体验一致</text>
+      </view>
+    </view>
     <view class="panel">
       <text class="panel__title">地点</text>
       <view v-for="loc in locations" :key="loc.id" class="list-item">
@@ -41,9 +47,10 @@
         <view class="list-item__info">
           <text class="list-item__title">{{ tech.display_name }}</text>
           <text class="list-item__desc">{{ tech.bio || '暂无简介' }}</text>
-          <text class="list-item__meta">
-            配额限制：{{ tech.restricted_by_quota ? '已开启' : '未开启' }}
-          </text>
+          <view class="badge-group">
+            <text class="tag tag--soft">日配额：{{ formatQuotaLabel(tech.daily_quota_limit, tech.restricted_by_quota) }}</text>
+            <text class="tag tag--soft">周配额：{{ formatQuotaLabel(tech.weekly_quota_limit, tech.restricted_by_quota) }}</text>
+          </view>
         </view>
         <view class="list-item__actions">
           <button size="mini" plain type="primary" @tap="editTechnician(tech)">编辑</button>
@@ -63,10 +70,18 @@
           <text class="form-field__label">头像链接 (可选)</text>
           <input v-model="technicianForm.avatar_url" placeholder="https://..." class="input" />
         </view>
-        <label class="toggle">
-          <text>启用配额限制</text>
-          <switch :checked="technicianForm.restricted_by_quota" @change="onQuotaToggle" />
-        </label>
+        <view class="form-field">
+          <text class="form-field__label">日配额 (0 表示不限)</text>
+          <input v-model="technicianForm.daily_quota_limit" type="number" placeholder="0" class="input" />
+        </view>
+        <view class="form-field">
+          <text class="form-field__label">周配额 (0 表示不限)</text>
+          <input v-model="technicianForm.weekly_quota_limit" type="number" placeholder="0" class="input" />
+        </view>
+        <text class="hint-text">留空表示沿用系统默认配额，0 表示不限制，>0 为自定义限制。</text>
+        <view class="inline-actions">
+          <button size="mini" plain class="ghost-btn" @tap="applyDefaultQuota">沿用系统默认限额</button>
+        </view>
         <view class="form-actions">
           <button size="mini" type="primary" @tap="saveTechnician">
             {{ editingTechnicianId ? '保存修改' : '新增技师' }}
@@ -192,7 +207,6 @@ import {
 } from '../../api/catalog'
 
 type PickerChangeEvent = { detail: { value: number } }
-type SwitchChangeEvent = { detail: { value: boolean } }
 
 const locations = ref<any[]>([])
 const technicians = ref<any[]>([])
@@ -204,6 +218,8 @@ const technicianForm = reactive({
   display_name: '',
   bio: '',
   avatar_url: '',
+  daily_quota_limit: '',
+  weekly_quota_limit: '',
   restricted_by_quota: false
 })
 const serviceForm = reactive({ name: '', description: '', duration: 60, concurrency: 1 })
@@ -218,8 +234,29 @@ const editingTechnicianId = ref('')
 const editingServiceId = ref('')
 const editingOfferingId = ref('')
 
-const onQuotaToggle = (event: SwitchChangeEvent) => {
-  technicianForm.restricted_by_quota = Boolean(event.detail?.value)
+const formatQuotaLabel = (value: number | null | undefined, usesDefault: boolean): string => {
+  if (value === null || value === undefined) {
+    return usesDefault ? '默认' : '不限'
+  }
+  if (Number(value) === 0) {
+    return '不限'
+  }
+  return String(value)
+}
+
+const normalizeQuotaInput = (value: string | number | null | undefined): number | null => {
+  if (value === '' || value === null || value === undefined) {
+    return null
+  }
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) {
+    return 0
+  }
+  return Math.max(0, Math.floor(numeric))
+}
+
+const toInputValue = (value: number | null | undefined): string => {
+  return value === null || value === undefined ? '' : String(value)
 }
 
 const onOfferingLocationChange = (event: PickerChangeEvent) => {
@@ -290,9 +327,18 @@ const resetTechnicianForm = () => {
     display_name: '',
     bio: '',
     avatar_url: '',
+    daily_quota_limit: '',
+    weekly_quota_limit: '',
     restricted_by_quota: false
   })
   editingTechnicianId.value = ''
+}
+
+const applyDefaultQuota = () => {
+  technicianForm.daily_quota_limit = ''
+  technicianForm.weekly_quota_limit = ''
+  technicianForm.restricted_by_quota = true
+  uni.showToast({ title: '已切换至系统默认配额', icon: 'none' })
 }
 
 const saveTechnician = async () => {
@@ -300,11 +346,23 @@ const saveTechnician = async () => {
     uni.showToast({ title: '请填写姓名', icon: 'none' })
     return
   }
+  const dailyLimit = normalizeQuotaInput(technicianForm.daily_quota_limit)
+  const weeklyLimit = normalizeQuotaInput(technicianForm.weekly_quota_limit)
+  const hasPositiveCustom = ((dailyLimit ?? 0) > 0) || ((weeklyLimit ?? 0) > 0)
+  const hasExplicitValues = dailyLimit !== null || weeklyLimit !== null
+  let restrictedFlag = technicianForm.restricted_by_quota
+  if (hasPositiveCustom) {
+    restrictedFlag = true
+  } else if (hasExplicitValues) {
+    restrictedFlag = false
+  }
   const payload = {
     display_name: technicianForm.display_name,
     bio: technicianForm.bio || undefined,
     avatar_url: technicianForm.avatar_url || undefined,
-    restricted_by_quota: technicianForm.restricted_by_quota
+    restricted_by_quota: restrictedFlag,
+    daily_quota_limit: dailyLimit,
+    weekly_quota_limit: weeklyLimit
   }
   if (editingTechnicianId.value) {
     await adminUpdateTechnician(editingTechnicianId.value, payload)
@@ -322,6 +380,8 @@ const editTechnician = (technician: any) => {
     display_name: technician.display_name,
     bio: technician.bio ?? '',
     avatar_url: technician.avatar_url ?? '',
+    daily_quota_limit: toInputValue(technician.daily_quota_limit),
+    weekly_quota_limit: toInputValue(technician.weekly_quota_limit),
     restricted_by_quota: Boolean(technician.restricted_by_quota)
   })
 }
@@ -470,33 +530,57 @@ onShow(loadAll)
 
 <style scoped lang="scss">
 .page {
-  height: 100vh;
+  min-height: 100vh;
   padding: 32rpx;
+  background: #f6f7fb;
+}
+
+.page-header {
+  padding: 12rpx 0 28rpx;
+}
+
+.page-title {
+  font-size: 42rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.page-subtitle {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  color: #6b7280;
 }
 
 .panel {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  margin-bottom: 24rpx;
+  background: linear-gradient(135deg, #ffffff 0%, #fbfcff 100%);
+  border-radius: 20rpx;
+  padding: 28rpx;
+  margin-bottom: 28rpx;
+  border: 1px solid #e7eaf3;
+  box-shadow: 0 16rpx 40rpx rgba(15, 23, 42, 0.08);
 
   &__title {
-    font-size: 30rpx;
+    font-size: 32rpx;
     font-weight: 600;
-    margin-bottom: 16rpx;
+    margin-bottom: 20rpx;
+    color: #0f172a;
   }
 }
 
 .list-item {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12rpx;
+  gap: 20rpx;
+  padding: 20rpx;
+  border-radius: 16rpx;
+  background: #f9fafc;
+  border: 1px solid #edf0f7;
+  margin-bottom: 16rpx;
 }
 
 .list-item--tech {
   align-items: flex-start;
-  gap: 16rpx;
 }
 
 .list-item__info {
@@ -506,20 +590,22 @@ onShow(loadAll)
 .list-item__title {
   display: block;
   font-weight: 600;
+  font-size: 30rpx;
+  color: #111827;
 }
 
 .list-item__desc {
   display: block;
   margin-top: 8rpx;
   font-size: 26rpx;
-  color: #777;
+  color: #6b7280;
 }
 
 .list-item__meta {
   display: block;
   margin-top: 6rpx;
   font-size: 24rpx;
-  color: #999;
+  color: #94a3b8;
 }
 
 .list-item__actions {
@@ -539,6 +625,11 @@ onShow(loadAll)
   &--warning {
     background: rgba(255, 149, 0, 0.1);
     color: #ff9500;
+  }
+
+  &--soft {
+    background: #edf2ff;
+    color: #475569;
   }
 }
 
@@ -586,5 +677,31 @@ onShow(loadAll)
   background: #f5f6fb;
   border-radius: 12rpx;
   margin-bottom: 12rpx;
+}
+
+.badge-group {
+  display: flex;
+  gap: 12rpx;
+  flex-wrap: wrap;
+  margin-top: 8rpx;
+}
+
+.hint-text {
+  display: block;
+  margin: 8rpx 0;
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+.inline-actions {
+  display: flex;
+  gap: 12rpx;
+  flex-wrap: wrap;
+  margin-bottom: 8rpx;
+}
+
+.ghost-btn {
+  border-color: #d5d8e1;
+  color: #5c6275;
 }
 </style>
