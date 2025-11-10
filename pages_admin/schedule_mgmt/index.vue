@@ -55,40 +55,37 @@
         <view v-else class="empty">当前组合暂无班次</view>
 
         <view class="form-item">
-          <text class="form-block-title">新增/更新班次</text>
+          <text class="form-block-title">批量添加班次</text>
           <view class="form-field">
-            <text class="form-field__label">班次</text>
+            <text class="form-field__label">选择星期（可多选）</text>
+            <view class="chip-group">
+              <view
+                v-for="option in weekdayOptions"
+                :key="option.value"
+                class="chip"
+                :class="{ 'chip--active': isWeekdaySelected(option.value) }"
+                @tap="toggleWeekday(option.value)"
+              >
+                周{{ option.label }}
+              </view>
+            </view>
+          </view>
+          <view class="form-field">
+            <text class="form-field__label">选择班次（可多选）</text>
             <view class="chip-group">
               <view
                 v-for="option in periodOptions"
                 :key="option.value"
                 class="chip"
-                :class="{ 'chip--active': hourForm.period === option.value }"
-                @tap="setHourPeriod(option.value)"
+                :class="{ 'chip--active': isPeriodSelected(option.value) }"
+                @tap="togglePeriod(option.value)"
               >
                 {{ option.label }}
                 <text class="chip__time">{{ option.range }}</text>
               </view>
             </view>
           </view>
-          <view class="form-field">
-            <text class="form-field__label">星期</text>
-            <picker mode="selector" :range="weekdayOptions" range-key="label" @change="onWeekdayChange">
-              <view class="picker-value">周{{ weekdayLabel(hourForm.weekday) }}</view>
-            </picker>
-          </view>
-          <view class="form-field">
-            <text class="form-field__label">开始时间</text>
-            <picker mode="time" :value="hourForm.start" @change="(e) => (hourForm.start = e.detail.value)">
-              <view class="picker-value">{{ hourForm.start }}</view>
-            </picker>
-          </view>
-          <view class="form-field">
-            <text class="form-field__label">结束时间</text>
-            <picker mode="time" :value="hourForm.end" @change="(e) => (hourForm.end = e.detail.value)">
-              <view class="picker-value">{{ hourForm.end }}</view>
-            </picker>
-          </view>
+          <text class="hint-text">将按照默认时段添加班次：上午 08:30-12:30、下午 14:00-18:00</text>
           <button class="w-full" size="mini" type="primary" @tap="saveHour">保存班次</button>
         </view>
       </template>
@@ -179,13 +176,8 @@ const locationOptions = ref<any[]>([])
 const technicianOptions = ref<any[]>([])
 const selectedLocationId = ref('')
 const selectedTechnicianId = ref('')
-
-const hourForm = reactive({
-  weekday: weekdayOptions[0].value,
-  period: periodOptions[0].value,
-  start: periodDefaults[periodOptions[0].value].start,
-  end: periodDefaults[periodOptions[0].value].end
-})
+const selectedWeekdays = ref<number[]>([weekdayOptions[0].value])
+const selectedPeriods = ref<string[]>([periodOptions[0].value])
 
 const exceptionForm = reactive({
   date: new Date().toISOString().split('T')[0],
@@ -238,17 +230,31 @@ const onTechnicianChange = (event: PickerChangeEvent) => {
   selectedTechnicianId.value = option?.id ?? ''
 }
 
-const onWeekdayChange = (event: PickerChangeEvent) => {
-  const option = weekdayOptions[Number(event.detail.value)]
-  hourForm.weekday = option.value
+const isWeekdaySelected = (value: number) => selectedWeekdays.value.includes(value)
+
+const toggleWeekday = (value: number) => {
+  if (isWeekdaySelected(value)) {
+    if (selectedWeekdays.value.length === 1) {
+      uni.showToast({ title: '至少选择一天', icon: 'none' })
+      return
+    }
+    selectedWeekdays.value = selectedWeekdays.value.filter((item) => item !== value)
+  } else {
+    selectedWeekdays.value = [...selectedWeekdays.value, value]
+  }
 }
 
-const setHourPeriod = (value: string) => {
-  hourForm.period = value
-  const defaults = periodDefaults[value]
-  if (defaults) {
-    hourForm.start = defaults.start
-    hourForm.end = defaults.end
+const isPeriodSelected = (value: string) => selectedPeriods.value.includes(value)
+
+const togglePeriod = (value: string) => {
+  if (isPeriodSelected(value)) {
+    if (selectedPeriods.value.length === 1) {
+      uni.showToast({ title: '至少选择一个班次', icon: 'none' })
+      return
+    }
+    selectedPeriods.value = selectedPeriods.value.filter((item) => item !== value)
+  } else {
+    selectedPeriods.value = [...selectedPeriods.value, value]
   }
 }
 
@@ -264,14 +270,18 @@ const ensureSelection = () => {
   return true
 }
 
-const mapBusinessHour = (item: any) => ({
-  id: item.rule_id,
-  location_id: item.location_id,
-  technician_id: item.technician_id,
-  day_of_week: item.day_of_week,
-  start: formatTime(item.start_time),
-  end: formatTime(item.end_time)
-})
+const mapBusinessHour = (item: any) => {
+  const start = formatTime(item.start_time)
+  return {
+    id: item.rule_id,
+    location_id: item.location_id,
+    technician_id: item.technician_id,
+    day_of_week: item.day_of_week,
+    start,
+    end: formatTime(item.end_time),
+    period: start < '13:00' ? 'morning' : 'afternoon'
+  }
+}
 
 const mapException = (item: any) => ({
   id: item.exception_id,
@@ -303,16 +313,38 @@ const fetchData = async () => {
 
 const saveHour = async () => {
   if (!ensureSelection()) return
-  const payload = {
-    technician_id: selectedTechnicianId.value,
-    location_id: selectedLocationId.value,
-    day_of_week: hourForm.weekday,
-    start_time: hourForm.start,
-    end_time: hourForm.end
+  const entries: any[] = []
+  let skipped = 0
+  for (const weekday of selectedWeekdays.value) {
+    for (const period of selectedPeriods.value) {
+      const defaults = periodDefaults[period]
+      if (!defaults) continue
+      const exists = filteredBusinessHours.value.some(
+        (hour) => hour.day_of_week === weekday && hour.period === period
+      )
+      if (exists) {
+        skipped += 1
+        continue
+      }
+      entries.push({
+        technician_id: selectedTechnicianId.value,
+        location_id: selectedLocationId.value,
+        day_of_week: weekday,
+        start_time: defaults.start,
+        end_time: defaults.end
+      })
+    }
   }
-  await saveBusinessHour(payload)
+  if (!entries.length) {
+    uni.showToast({ title: skipped ? '选择的班次已存在' : '请选择班次', icon: 'none' })
+    return
+  }
+  await saveBusinessHour(entries)
   uni.showToast({ title: '已保存', icon: 'success' })
   await fetchData()
+  if (skipped) {
+    uni.showToast({ title: `${skipped} 个已存在，已跳过`, icon: 'none' })
+  }
 }
 
 const removeHour = async (id: string) => {
