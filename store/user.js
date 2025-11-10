@@ -2,18 +2,55 @@ import { defineStore } from 'pinia'
 import { login as loginApi } from '../api/auth'
 import { fetchProfile } from '../api/users'
 
-const getLoginCode = () =>
+const DEV_LOGIN_CODE_KEY = 'zenbook__dev_login_code'
+
+const resolveDevLoginCode = () => {
+  const envCode = (import.meta.env && import.meta.env.VITE_DEV_LOGIN_CODE) || ''
+  if (envCode) {
+    return envCode
+  }
+  try {
+    const cached = uni.getStorageSync(DEV_LOGIN_CODE_KEY)
+    if (cached) {
+      return cached
+    }
+    const generated = `dev-openid-${Date.now()}`
+    uni.setStorageSync(DEV_LOGIN_CODE_KEY, generated)
+    return generated
+  } catch (error) {
+    console.warn('Failed to persist dev login code', error)
+    return 'dev-openid'
+  }
+}
+
+const getLoginCode = (options = {}) =>
   new Promise((resolve, reject) => {
+    const { allowFallback = true } = options
     if (typeof uni.login !== 'function') {
-      resolve(`dev-${Date.now()}`)
+      if (allowFallback) {
+        resolve(resolveDevLoginCode())
+        return
+      }
+      reject(new Error('当前环境不支持微信登录'))
       return
     }
     uni.login({
       provider: 'weixin',
-      success: ({ code }) => resolve(code || `dev-${Date.now()}`),
+      success: ({ code }) => {
+        if (!code) {
+          reject(new Error('未获取到微信登录凭证'))
+          return
+        }
+        resolve(code)
+      },
       fail: reject
     })
   })
+
+const shouldRetryLogin = (error) => {
+  const message = (error?.message ?? '').toLowerCase()
+  return message.includes('invalid') && message.includes('code')
+}
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -43,18 +80,32 @@ export const useUserStore = defineStore('user', {
       }
       this.loading = true
       try {
-        const code = await getLoginCode()
-        const data = await loginApi({ code })
-        this.token = data.token
-        this.userInfo = data.userInfo
-        this.impersonateRole = ''
+        await this.exchangeToken()
         uni.showToast({ title: '登录成功', icon: 'success' })
       } catch (error) {
+        if (shouldRetryLogin(error)) {
+          try {
+            await this.exchangeToken({ allowFallback: false })
+            uni.showToast({ title: '登录成功', icon: 'success' })
+            return
+          } catch (retryError) {
+            console.error('Login retry failed', retryError)
+          }
+        }
         console.error('Login failed', error)
-        uni.showToast({ title: '登录失败', icon: 'none' })
+        const hint = error?.message || '登录失败'
+        uni.showToast({ title: hint, icon: 'none' })
       } finally {
         this.loading = false
       }
+    },
+    async exchangeToken(options = {}) {
+      const code = await getLoginCode(options)
+      const data = await loginApi({ code })
+      this.token = data.token
+      this.userInfo = data.userInfo
+      this.impersonateRole = ''
+      return data
     },
     async hydrateProfile() {
       if (!this.token) {

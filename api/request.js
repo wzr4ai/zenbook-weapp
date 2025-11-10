@@ -49,7 +49,7 @@ export const request = ({ url, method = 'GET', data, header = {} }) => {
           reject(new Error('FORBIDDEN'))
           return
         }
-        const message = responseData?.message ?? '请求失败'
+        const message = responseData?.message ?? responseData?.detail ?? '请求失败'
         uni.showToast({ title: message, icon: 'none' })
         reject(new Error(message))
       },
