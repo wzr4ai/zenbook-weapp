@@ -8,7 +8,9 @@
 
     <view class="panel">
       <text class="panel__title">可用时间</text>
+      <view v-if="loadingSlots" class="panel__loading">加载可预约时段...</view>
       <TimeSlotGrid
+        v-else
         :slots="bookingStore.availability"
         v-model="selectedSlot"
       />
@@ -43,6 +45,7 @@ import { useBookingStore } from '../../store/booking'
 const bookingStore = useBookingStore()
 const days = ref(generateDays())
 const selectedDate = ref(bookingStore.selectedDate || days.value[0]?.date)
+const loadingSlots = ref(false)
 const selectedSlot = computed({
   get: () => bookingStore.selectedSlot,
   set: (slot) => bookingStore.setSlot(slot)
@@ -62,15 +65,33 @@ function generateDays(count = 7) {
   })
 }
 
+const canLoadAvailability = computed(
+  () =>
+    Boolean(
+      bookingStore.selectedLocation?.id &&
+        bookingStore.selectedTechnician?.id &&
+        bookingStore.selectedService?.id
+    )
+)
+
 const loadAvailability = async (date: string) => {
   if (!date) return
   bookingStore.setDate(date)
-  await bookingStore.loadAvailability({
-    date,
-    technician_id: bookingStore.selectedTechnician?.id,
-    service_id: bookingStore.selectedService?.id,
-    location_id: bookingStore.selectedLocation?.id
-  })
+  if (!canLoadAvailability.value) {
+    bookingStore.clearAvailability()
+    return
+  }
+  loadingSlots.value = true
+  try {
+    await bookingStore.loadAvailability({
+      date,
+      technician_id: bookingStore.selectedTechnician?.id,
+      service_id: bookingStore.selectedService?.id,
+      location_id: bookingStore.selectedLocation?.id
+    })
+  } finally {
+    loadingSlots.value = false
+  }
 }
 
 const goConfirm = () => {
@@ -87,6 +108,19 @@ watch(
     loadAvailability(value)
   },
   { immediate: true }
+)
+
+watch(
+  () => [
+    bookingStore.selectedLocation?.id,
+    bookingStore.selectedTechnician?.id,
+    bookingStore.selectedService?.id
+  ],
+  () => {
+    if (bookingStore.selectedDate) {
+      loadAvailability(bookingStore.selectedDate)
+    }
+  }
 )
 
 onMounted(() => {
@@ -111,6 +145,13 @@ onMounted(() => {
     font-size: 30rpx;
     font-weight: 600;
     margin-bottom: 20rpx;
+  }
+
+  &__loading {
+    padding: 24rpx 0;
+    text-align: center;
+    color: #888;
+    font-size: 26rpx;
   }
 }
 

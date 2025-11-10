@@ -12,7 +12,8 @@ export const useBookingStore = defineStore('booking', {
     selectedPatientId: '',
     notes: '',
     offerings: [],
-    availability: []
+    availability: [],
+    availabilityLoading: false
   }),
   actions: {
     reset() {
@@ -39,13 +40,34 @@ export const useBookingStore = defineStore('booking', {
     setNotes(value) {
       this.notes = value
     },
+    clearAvailability() {
+      this.availability = []
+      this.selectedSlot = null
+      this.availabilityLoading = false
+    },
     async loadOfferings(filters) {
+      this.clearAvailability()
       const data = await fetchOfferings(filters)
       this.offerings = Array.isArray(data) ? data : []
     },
     async loadAvailability(params) {
-      const data = await getAvailability(params)
-      this.availability = Array.isArray(data) ? data : []
+      if (
+        !params?.date ||
+        !params?.technician_id ||
+        !params?.service_id ||
+        !params?.location_id
+      ) {
+        this.clearAvailability()
+        return
+      }
+      this.availabilityLoading = true
+      try {
+        const data = await getAvailability(params)
+        this.availability = Array.isArray(data) ? data : []
+        this.selectedSlot = null
+      } finally {
+        this.availabilityLoading = false
+      }
     }
   }
 })
