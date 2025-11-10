@@ -48,8 +48,8 @@
           <text class="list-item__title">{{ tech.display_name }}</text>
           <text class="list-item__desc">{{ tech.bio || '暂无简介' }}</text>
           <view class="badge-group">
-            <text class="tag tag--soft">日配额：{{ formatQuotaLabel(tech.daily_quota_limit, tech.restricted_by_quota) }}</text>
-            <text class="tag tag--soft">周配额：{{ formatQuotaLabel(tech.weekly_quota_limit, tech.restricted_by_quota) }}</text>
+            <text class="tag tag--soft">上午配额：{{ formatQuotaLabel(tech.morning_quota_limit, tech.restricted_by_quota) }}</text>
+            <text class="tag tag--soft">下午配额：{{ formatQuotaLabel(tech.afternoon_quota_limit, tech.restricted_by_quota) }}</text>
           </view>
         </view>
         <view class="list-item__actions">
@@ -71,12 +71,12 @@
           <input v-model="technicianForm.avatar_url" placeholder="https://..." class="input" />
         </view>
         <view class="form-field">
-          <text class="form-field__label">日配额 (0 表示不限)</text>
-          <input v-model="technicianForm.daily_quota_limit" type="number" placeholder="0" class="input" />
+          <text class="form-field__label">上午配额 (0 表示不限)</text>
+          <input v-model="technicianForm.morning_quota_limit" type="number" placeholder="0" class="input" />
         </view>
         <view class="form-field">
-          <text class="form-field__label">周配额 (0 表示不限)</text>
-          <input v-model="technicianForm.weekly_quota_limit" type="number" placeholder="0" class="input" />
+          <text class="form-field__label">下午配额 (0 表示不限)</text>
+          <input v-model="technicianForm.afternoon_quota_limit" type="number" placeholder="0" class="input" />
         </view>
         <text class="hint-text">留空表示沿用系统默认配额，0 表示不限制，>0 为自定义限制。</text>
         <view class="inline-actions">
@@ -218,8 +218,8 @@ const technicianForm = reactive({
   display_name: '',
   bio: '',
   avatar_url: '',
-  daily_quota_limit: '',
-  weekly_quota_limit: '',
+  morning_quota_limit: '',
+  afternoon_quota_limit: '',
   restricted_by_quota: false
 })
 const serviceForm = reactive({ name: '', description: '', duration: 60, concurrency: 1 })
@@ -327,16 +327,16 @@ const resetTechnicianForm = () => {
     display_name: '',
     bio: '',
     avatar_url: '',
-    daily_quota_limit: '',
-    weekly_quota_limit: '',
+    morning_quota_limit: '',
+    afternoon_quota_limit: '',
     restricted_by_quota: false
   })
   editingTechnicianId.value = ''
 }
 
 const applyDefaultQuota = () => {
-  technicianForm.daily_quota_limit = ''
-  technicianForm.weekly_quota_limit = ''
+  technicianForm.morning_quota_limit = ''
+  technicianForm.afternoon_quota_limit = ''
   technicianForm.restricted_by_quota = true
   uni.showToast({ title: '已切换至系统默认配额', icon: 'none' })
 }
@@ -346,10 +346,10 @@ const saveTechnician = async () => {
     uni.showToast({ title: '请填写姓名', icon: 'none' })
     return
   }
-  const dailyLimit = normalizeQuotaInput(technicianForm.daily_quota_limit)
-  const weeklyLimit = normalizeQuotaInput(technicianForm.weekly_quota_limit)
-  const hasPositiveCustom = ((dailyLimit ?? 0) > 0) || ((weeklyLimit ?? 0) > 0)
-  const hasExplicitValues = dailyLimit !== null || weeklyLimit !== null
+  const morningLimit = normalizeQuotaInput(technicianForm.morning_quota_limit)
+  const afternoonLimit = normalizeQuotaInput(technicianForm.afternoon_quota_limit)
+  const hasPositiveCustom = ((morningLimit ?? 0) > 0) || ((afternoonLimit ?? 0) > 0)
+  const hasExplicitValues = morningLimit !== null || afternoonLimit !== null
   let restrictedFlag = technicianForm.restricted_by_quota
   if (hasPositiveCustom) {
     restrictedFlag = true
@@ -361,8 +361,8 @@ const saveTechnician = async () => {
     bio: technicianForm.bio || undefined,
     avatar_url: technicianForm.avatar_url || undefined,
     restricted_by_quota: restrictedFlag,
-    daily_quota_limit: dailyLimit,
-    weekly_quota_limit: weeklyLimit
+    morning_quota_limit: morningLimit,
+    afternoon_quota_limit: afternoonLimit
   }
   if (editingTechnicianId.value) {
     await adminUpdateTechnician(editingTechnicianId.value, payload)
@@ -380,8 +380,8 @@ const editTechnician = (technician: any) => {
     display_name: technician.display_name,
     bio: technician.bio ?? '',
     avatar_url: technician.avatar_url ?? '',
-    daily_quota_limit: toInputValue(technician.daily_quota_limit),
-    weekly_quota_limit: toInputValue(technician.weekly_quota_limit),
+    morning_quota_limit: toInputValue(technician.morning_quota_limit),
+    afternoon_quota_limit: toInputValue(technician.afternoon_quota_limit),
     restricted_by_quota: Boolean(technician.restricted_by_quota)
   })
 }
