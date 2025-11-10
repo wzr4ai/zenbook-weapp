@@ -35,6 +35,12 @@
       <view class="hint-text" v-if="!locationOptions.length || !technicianOptions.length">
         请先在“服务配置中心”创建地点与技师
       </view>
+      <view class="form-field">
+        <text class="form-field__label">参考周（用于日历映射）</text>
+        <picker mode="date" :value="referenceDate" @change="onReferenceDateChange">
+          <view class="picker-value">{{ referenceDate }}（周一至周日：{{ weekRangeLabel }}）</view>
+        </picker>
+      </view>
     </view>
 
     <view class="panel">
@@ -44,7 +50,9 @@
         <view v-if="filteredBusinessHours.length">
           <view v-for="item in filteredBusinessHours" :key="item.id" class="list-item">
             <view class="list-item__info">
-              <text class="list-item__title">周{{ weekdayLabel(item.day_of_week) }}</text>
+              <text class="list-item__title">
+                周{{ weekdayLabel(item.day_of_week) }}（{{ weekdayDateLabel(item.day_of_week) }}）
+              </text>
               <view class="badge-group">
                 <text
                   class="tag tag--soft"
@@ -184,7 +192,8 @@ const locationOptions = ref<any[]>([])
 const technicianOptions = ref<any[]>([])
 const selectedLocationId = ref('')
 const selectedTechnicianId = ref('')
-const selectedWeekdays = ref<number[]>([weekdayOptions[0].value])
+const referenceDate = ref(new Date().toISOString().split('T')[0])
+const selectedWeekdays = ref<number[]>([1, 2, 3, 4, 5])
 const selectedPeriods = ref<string[]>([periodOptions[0].value])
 
 const exceptionForm = reactive({
@@ -223,7 +232,32 @@ const hasSlot = (start?: string | null, end?: string | null) => Boolean(start &&
 
 const weekdayLabel = (value: number) => weekdayOptions.find((item) => item.value === value)?.label ?? value
 
+const getDateFromReference = (offset: number) => {
+  const base = new Date(`${referenceDate.value}T00:00:00`)
+  const jsDay = (base.getDay() + 6) % 7
+  base.setDate(base.getDate() - jsDay + offset)
+  return base
+}
+
+const weekDates = computed(() => {
+  const dates: Record<number, string> = {}
+  for (const option of weekdayOptions) {
+    const date = getDateFromReference(option.value)
+    dates[option.value] = date.toISOString().split('T')[0]
+  }
+  return dates
+})
+
+const weekRangeLabel = computed(() => {
+  const monday = weekDates.value[0]
+  const sunday = weekDates.value[6]
+  return `${monday ?? '--'} 至 ${sunday ?? '--'}`
+})
+
+const weekdayDateLabel = (weekday: number) => weekDates.value[weekday] ?? '--'
+
 type PickerChangeEvent = { detail: { value: number } }
+type DatePickerChangeEvent = { detail: { value: string } }
 
 const onLocationChange = (event: PickerChangeEvent) => {
   const option = locationOptions.value[Number(event.detail.value)]
@@ -233,6 +267,10 @@ const onLocationChange = (event: PickerChangeEvent) => {
 const onTechnicianChange = (event: PickerChangeEvent) => {
   const option = technicianOptions.value[Number(event.detail.value)]
   selectedTechnicianId.value = option?.id ?? ''
+}
+
+const onReferenceDateChange = (event: DatePickerChangeEvent) => {
+  referenceDate.value = event.detail.value
 }
 
 const isWeekdaySelected = (value: number) => selectedWeekdays.value.includes(value)
