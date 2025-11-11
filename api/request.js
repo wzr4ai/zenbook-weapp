@@ -75,7 +75,7 @@ export const request = ({ url, method = 'GET', data, header = {} }) => {
           return
         }
         if (statusCode === 401) {
-          userStore.logout()
+          userStore.$reset()
           uni.showToast({ title: '请重新登录', icon: 'none' })
           uni.reLaunch({ url: '/pages/index/index' })
           reject(new Error('UNAUTHORIZED'))

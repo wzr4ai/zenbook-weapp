@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { login as loginApi } from '../api/auth'
-import { fetchProfile } from '../api/users'
+import { fetchProfile, updateProfile } from '../api/users'
 
 const DEV_LOGIN_CODE_KEY = 'zenbook__dev_login_code'
 
@@ -133,19 +133,27 @@ export const useUserStore = defineStore('user', {
         console.warn('Failed to hydrate profile', error)
       }
     },
+    async updateDisplayName(name) {
+      if (!this.isLoggedIn) {
+        await this.login()
+        if (!this.isLoggedIn) {
+          return
+        }
+      }
+      const trimmed = (name ?? '').trim()
+      if (!trimmed) {
+        uni.showToast({ title: '昵称不能为空', icon: 'none' })
+        return
+      }
+      const profile = await updateProfile({ display_name: trimmed })
+      this.userInfo = profile
+      uni.showToast({ title: '已更新昵称', icon: 'success' })
+    },
     setToken(token) {
       this.token = token
     },
     setUserInfo(userInfo) {
       this.userInfo = userInfo
-    },
-    logout() {
-      this.$reset()
-      try {
-        uni.removeStorageSync('zenbook__user')
-      } catch (error) {
-        console.warn('Failed to clean storage', error)
-      }
     },
     setImpersonateRole(role) {
       if (this.userInfo?.role !== 'admin') {

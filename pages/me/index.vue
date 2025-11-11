@@ -9,8 +9,14 @@
           {{ roleLabel }}
         </text>
       </view>
-      <button type="primary" size="mini" class="profile-card__btn" @tap="handleAuth">
-        {{ userStore.isLoggedIn ? '退出登录' : '微信授权登录' }}
+      <button
+        v-if="!userStore.isLoggedIn"
+        type="primary"
+        size="mini"
+        class="profile-card__btn"
+        @tap="handleAuth"
+      >
+        微信授权登录
       </button>
     </view>
 
@@ -18,6 +24,22 @@
       <text class="panel__title">常用功能</text>
       <button class="panel-btn" @tap="goAppointments">我的预约</button>
       <button class="panel-btn" @tap="goPatients">就诊人管理</button>
+    </view>
+
+    <view class="panel" v-if="userStore.isLoggedIn">
+      <text class="panel__title">个人资料</text>
+      <view class="form-field">
+        <text class="form-field__label">昵称</text>
+        <input
+          class="input"
+          v-model="displayName"
+          maxlength="20"
+          placeholder="请输入昵称"
+        />
+      </view>
+      <button class="panel-btn" type="primary" :disabled="savingName" @tap="saveDisplayName">
+        {{ savingName ? '保存中...' : '保存昵称' }}
+      </button>
     </view>
 
     <view class="panel" v-if="userStore.isStaffView">
@@ -51,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useUserStore } from '../../store/user'
 
 const userStore = useUserStore()
@@ -75,13 +97,33 @@ const roleLabel = computed(() => {
   return `${roleMap[userStore.viewRole] || '客户'}视角`
 })
 
+const displayName = ref(userStore.userInfo?.display_name ?? '')
+const savingName = ref(false)
+
+watch(
+  () => userStore.userInfo?.display_name,
+  (value) => {
+    displayName.value = value ?? ''
+  }
+)
+
 const handleAuth = async () => {
-  if (userStore.isLoggedIn) {
-    userStore.logout()
-    uni.showToast({ title: '已退出', icon: 'none' })
+  if (!userStore.isLoggedIn) {
+    await userStore.login()
+  }
+}
+
+const saveDisplayName = async () => {
+  if (!displayName.value.trim()) {
+    uni.showToast({ title: '请输入昵称', icon: 'none' })
     return
   }
-  await userStore.login()
+  savingName.value = true
+  try {
+    await userStore.updateDisplayName(displayName.value)
+  } finally {
+    savingName.value = false
+  }
 }
 
 const goAppointments = () => {
@@ -164,6 +206,24 @@ const switchRole = (role: string) => {
 .panel-btn {
   margin-bottom: 16rpx;
   border-radius: 12rpx;
+}
+
+.form-field {
+  margin-bottom: 16rpx;
+
+  &__label {
+    display: block;
+    margin-bottom: 8rpx;
+    font-size: 26rpx;
+    color: #666;
+  }
+}
+
+.input {
+  width: 100%;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  background: #f5f6fb;
 }
 
 .role-switch {
