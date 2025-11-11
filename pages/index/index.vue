@@ -131,8 +131,9 @@ const goPatients = () => {
   uni.navigateTo({ url: '/pages_sub/patients/index' })
 }
 
-const goApptCreate = () => {
-  uni.navigateTo({ url: '/pages_admin/appt_create/index' })
+const goApptCreate = (date?: string) => {
+  const query = date ? `?date=${date}` : ''
+  uni.navigateTo({ url: `/pages_admin/appt_create/index${query}` })
 }
 const goSchedule = () => {
   uni.navigateTo({ url: '/pages_admin/schedule_mgmt/index' })
@@ -270,6 +271,11 @@ watch(isStaffView, () => {
 
 .hero--staff {
   margin-bottom: 8rpx;
+
+  .hero__title {
+    font-size: 28rpx;
+    color: #4b5563;
+  }
 }
 
 .admin-panel {
