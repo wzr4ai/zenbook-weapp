@@ -167,14 +167,24 @@ import {
 import { fetchLocations, fetchTechnicians } from '../../api/catalog'
 
 const weekdayOptions = [
-  { value: 0, label: '一' },
-  { value: 1, label: '二' },
-  { value: 2, label: '三' },
-  { value: 3, label: '四' },
-  { value: 4, label: '五' },
-  { value: 5, label: '六' },
-  { value: 6, label: '日' }
-]
+  { value: 'monday', label: '一', offset: 0 },
+  { value: 'tuesday', label: '二', offset: 1 },
+  { value: 'wednesday', label: '三', offset: 2 },
+  { value: 'thursday', label: '四', offset: 3 },
+  { value: 'friday', label: '五', offset: 4 },
+  { value: 'saturday', label: '六', offset: 5 },
+  { value: 'sunday', label: '日', offset: 6 }
+] as const
+
+type WeekdayValue = (typeof weekdayOptions)[number]['value']
+
+const weekdayOrderMap: Record<WeekdayValue, number> = weekdayOptions.reduce(
+  (acc, option) => {
+    acc[option.value] = option.offset
+    return acc
+  },
+  {} as Record<WeekdayValue, number>
+)
 
 const periodOptions = [
   { value: 'morning', label: '上午', range: '08:30 - 12:30', defaults: { start: '08:30', end: '12:30' } },
@@ -193,7 +203,7 @@ const technicianOptions = ref<any[]>([])
 const selectedLocationId = ref('')
 const selectedTechnicianId = ref('')
 const referenceDate = ref(new Date().toISOString().split('T')[0])
-const selectedWeekdays = ref<number[]>([1, 2, 3, 4, 5])
+const selectedWeekdays = ref<WeekdayValue[]>(weekdayOptions.slice(0, 5).map((item) => item.value))
 const selectedPeriods = ref<string[]>([periodOptions[0].value])
 
 const exceptionForm = reactive({
@@ -230,7 +240,7 @@ const formatTime = (value?: string | null) => {
 
 const hasSlot = (start?: string | null, end?: string | null) => Boolean(start && end)
 
-const weekdayLabel = (value: number) => weekdayOptions.find((item) => item.value === value)?.label ?? value
+const weekdayLabel = (value: WeekdayValue) => weekdayOptions.find((item) => item.value === value)?.label ?? value
 
 const getDateFromReference = (offset: number) => {
   const base = new Date(`${referenceDate.value}T00:00:00`)
@@ -240,25 +250,25 @@ const getDateFromReference = (offset: number) => {
 }
 
 const weekDates = computed(() => {
-  const dates: Record<number, string> = {}
+  const dates: Partial<Record<WeekdayValue, string>> = {}
   for (const option of weekdayOptions) {
-    const date = getDateFromReference(option.value)
+    const date = getDateFromReference(option.offset)
     dates[option.value] = date.toISOString().split('T')[0]
   }
-  return dates
+  return dates as Record<WeekdayValue, string>
 })
 
 const weekRangeLabel = computed(() => {
-  const monday = weekDates.value[0]
-  const sunday = weekDates.value[6]
+  const monday = weekDates.value['monday']
+  const sunday = weekDates.value['sunday']
   return `${monday ?? '--'} 至 ${sunday ?? '--'}`
 })
 
-const formatRuleDate = (ruleDate?: string | null, weekday?: number) => {
+const formatRuleDate = (ruleDate?: string | null, weekday?: WeekdayValue) => {
   if (ruleDate) {
     return ruleDate
   }
-  if (typeof weekday === 'number') {
+  if (weekday) {
     return weekDates.value[weekday] ?? '--'
   }
   return '--'
@@ -281,9 +291,9 @@ const onReferenceDateChange = (event: DatePickerChangeEvent) => {
   referenceDate.value = event.detail.value
 }
 
-const isWeekdaySelected = (value: number) => selectedWeekdays.value.includes(value)
+const isWeekdaySelected = (value: WeekdayValue) => selectedWeekdays.value.includes(value)
 
-const toggleWeekday = (value: number) => {
+const toggleWeekday = (value: WeekdayValue) => {
   if (isWeekdaySelected(value)) {
     if (selectedWeekdays.value.length === 1) {
       uni.showToast({ title: '至少选择一天', icon: 'none' })
@@ -325,7 +335,7 @@ const mapBusinessHour = (item: any) => ({
   id: item.rule_id,
   location_id: item.location_id,
   technician_id: item.technician_id,
-  day_of_week: item.day_of_week,
+  day_of_week: item.day_of_week as WeekdayValue,
   rule_date: item.rule_date,
   start_time_am: item.start_time_am,
   end_time_am: item.end_time_am,
@@ -361,7 +371,7 @@ const fetchData = async () => {
     if (a.rule_date && b.rule_date) {
       return a.rule_date.localeCompare(b.rule_date)
     }
-    return a.day_of_week - b.day_of_week
+    return weekdayOrderMap[a.day_of_week] - weekdayOrderMap[b.day_of_week]
   })
   exceptions.value = exs.map(mapException)
 }
