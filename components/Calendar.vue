@@ -14,7 +14,8 @@
         }"
         @tap="handleSelect(day)"
       >
-        <text class="calendar__weekday">{{ day.label }}</text>
+        <text class="calendar__highlight">{{ day.label }}</text>
+        <text class="calendar__weekday">{{ day.weekday || formatWeekday(day.date) }}</text>
         <text class="calendar__date">{{ formatDate(day.date) }}</text>
       </view>
     </view>
@@ -25,6 +26,7 @@
 interface DayMeta {
   date: string
   label: string
+  weekday?: string
   disabled?: boolean
 }
 
@@ -41,7 +43,19 @@ const emit = defineEmits<{
 
 const formatDate = (value: string) => {
   if (!value) return ''
-  return value.split('-').slice(1).join('/')
+  const parts = value.split('-')
+  if (parts.length < 3) return value
+  return `${parts[1]}/${parts[2]}`
+}
+
+const formatWeekday = (value: string) => {
+  if (!value) return ''
+  const date = new Date(`${value}T00:00:00`)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+  const mapping = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  return mapping[date.getDay()]
 }
 
 const handleSelect = (day: DayMeta) => {
@@ -95,15 +109,30 @@ const handleSelect = (day: DayMeta) => {
     }
   }
 
+  &__highlight {
+    display: block;
+    font-size: 34rpx;
+    font-weight: 600;
+    margin-bottom: 6rpx;
+  }
+
   &__weekday {
     display: block;
     font-size: 24rpx;
+    color: #6b7280;
+    margin-bottom: 2rpx;
   }
 
   &__date {
     display: block;
-    font-size: 32rpx;
+    font-size: 28rpx;
     font-weight: 500;
+  }
+
+  &__cell--active {
+    .calendar__weekday {
+      color: rgba(255, 255, 255, 0.9);
+    }
   }
 }
 </style>

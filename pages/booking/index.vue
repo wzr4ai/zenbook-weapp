@@ -52,14 +52,35 @@ const selectedSlot = computed({
 })
 const selectedOffering = computed(() => bookingStore.offerings[0])
 
+function formatDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function formatWeekday(date: Date): string {
+  const mapping = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  return mapping[date.getDay()]
+}
+
+function describeOffset(index: number): string {
+  if (index === 0) return '今天'
+  if (index === 1) return '明天'
+  if (index === 2) return '后天'
+  return `${index}天后`
+}
+
 function generateDays(count = 7) {
   const today = new Date()
+  today.setHours(0, 0, 0, 0)
   return Array.from({ length: count }).map((_, index) => {
     const date = new Date(today)
     date.setDate(today.getDate() + index)
     return {
-      date: date.toISOString().split('T')[0],
-      label: index === 0 ? '今天' : `+${index}天`,
+      date: formatDate(date),
+      label: describeOffset(index),
+      weekday: formatWeekday(date),
       disabled: false
     }
   })
