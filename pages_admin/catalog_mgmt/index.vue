@@ -136,10 +136,16 @@
       <text class="panel__title">组合套餐 (Offering)</text>
       <view v-for="item in offerings" :key="item.id" class="list-item">
         <view class="list-item__info">
-          <text class="list-item__title">
-            {{ item.location_name }} / {{ item.technician_name }} / {{ item.service_name }}
+          <text class="list-item__title">{{ item.service_name }}</text>
+          <text class="list-item__desc">{{ item.service_description || '暂无服务简介' }}</text>
+          <text class="list-item__meta">
+            地点：{{ item.location_name }}<text v-if="item.location_city"> · {{ item.location_city }}</text>
           </text>
-          <text class="list-item__meta">¥{{ item.price }} · {{ item.duration_minutes ?? item.duration }}min</text>
+          <text class="list-item__meta">技师：{{ item.technician_name }}</text>
+          <text class="list-item__meta">
+            服务默认：{{ item.service_default_duration ?? '-' }}min · 并发 {{ item.service_concurrency ?? '-' }}
+          </text>
+          <text class="list-item__meta">组合价：¥{{ item.price }} · {{ item.duration_minutes ?? item.duration }}min</text>
         </view>
         <view class="list-item__actions">
           <button size="mini" plain type="primary" @tap="editOffering(item)">编辑</button>
@@ -207,6 +213,7 @@ import {
 } from '../../api/catalog'
 
 type PickerChangeEvent = { detail: { value: number } }
+type CatalogEntity = Record<string, any>
 
 const locations = ref<any[]>([])
 const technicians = ref<any[]>([])
@@ -271,6 +278,44 @@ const onOfferingServiceChange = (event: PickerChangeEvent) => {
   offeringSelections.service = services.value[Number(event.detail.value)]
 }
 
+const toIndex = (items: CatalogEntity[]) => {
+  const map: Record<string, CatalogEntity> = {}
+  items.forEach((item) => {
+    if (item?.id) {
+      map[item.id] = item
+    }
+  })
+  return map
+}
+
+const hydrateOfferings = (
+  source: CatalogEntity[],
+  locs: CatalogEntity[],
+  techs: CatalogEntity[],
+  svcs: CatalogEntity[]
+) => {
+  const locationMap = toIndex(locs)
+  const technicianMap = toIndex(techs)
+  const serviceMap = toIndex(svcs)
+  return source.map((item) => {
+    const location = locationMap[item.location_id] || {}
+    const technician = technicianMap[item.technician_id] || {}
+    const service = serviceMap[item.service_id] || {}
+    return {
+      ...item,
+      location_name: location.name ?? '未匹配地点',
+      location_city: location.city ?? '',
+      location_address: location.address ?? '',
+      technician_name: technician.display_name ?? '未匹配技师',
+      technician_avatar: technician.avatar_url ?? '',
+      service_name: service.name ?? '未匹配服务',
+      service_description: service.description ?? '',
+      service_default_duration: service.default_duration_minutes ?? null,
+      service_concurrency: service.concurrency_level ?? null
+    }
+  })
+}
+
 const loadAll = async () => {
   const [loc, tech, svc, off] = await Promise.all([
     fetchLocations(),
@@ -281,7 +326,7 @@ const loadAll = async () => {
   locations.value = loc
   technicians.value = tech
   services.value = svc
-  offerings.value = off
+  offerings.value = hydrateOfferings(off, loc, tech, svc)
 }
 
 const resetLocationForm = () => {
