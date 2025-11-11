@@ -45,7 +45,7 @@ const formatDate = (value: string) => {
   if (!value) return ''
   const parts = value.split('-')
   if (parts.length < 3) return value
-  return `${parts[1]}/${parts[2]}`
+  return `${Number(parts[1])}月${Number(parts[2])}日`
 }
 
 const formatWeekday = (value: string) => {
@@ -111,27 +111,37 @@ const handleSelect = (day: DayMeta) => {
 
   &__highlight {
     display: block;
-    font-size: 34rpx;
-    font-weight: 600;
-    margin-bottom: 6rpx;
+    font-size: 22rpx;
+    color: #94a3b8;
+    margin-bottom: 4rpx;
   }
 
   &__weekday {
     display: block;
-    font-size: 24rpx;
-    color: #6b7280;
-    margin-bottom: 2rpx;
+    font-size: 32rpx;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 6rpx;
   }
 
   &__date {
     display: block;
-    font-size: 28rpx;
+    font-size: 30rpx;
     font-weight: 500;
+    color: #334155;
   }
 
   &__cell--active {
+    .calendar__highlight {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
     .calendar__weekday {
-      color: rgba(255, 255, 255, 0.9);
+      color: #fff;
+    }
+
+    .calendar__date {
+      color: #fff;
     }
   }
 }
