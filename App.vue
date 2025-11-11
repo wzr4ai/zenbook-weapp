@@ -6,7 +6,7 @@ const userStore = useUserStore()
 
 onLaunch(() => {
   console.log('ZenBook WeApp Launch')
-  userStore.hydrateProfile()
+  userStore.autoLogin()
 })
 </script>
 

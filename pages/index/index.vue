@@ -9,9 +9,6 @@
         </text>
         <text class="hero__hint">预约一览 · 快速操作</text>
       </view>
-      <button size="mini" class="hero__profile" @tap="goProfile">
-        去“我的”
-      </button>
     </view>
     <view class="admin-panel">
       <AdminDashboardPanel
@@ -34,14 +31,6 @@
         <text class="hero__title">ZenBook 养生馆</text>
         <text class="hero__hint">三步完成预约，技师日程实时同步</text>
       </view>
-      <button
-        size="mini"
-        class="hero__profile"
-        type="default"
-        @tap="goProfile"
-      >
-        {{ userStore.isLoggedIn ? '我的' : '登录' }}
-      </button>
     </view>
 
     <view class="card">
@@ -133,10 +122,6 @@ const canProceed = computed(() => {
     Boolean(bookingStore.selectedService)
   )
 })
-
-const goProfile = () => {
-  uni.switchTab({ url: '/pages/me/index' })
-}
 
 const goAppointments = () => {
   uni.navigateTo({ url: '/pages_sub/appointments/index' })
@@ -281,9 +266,6 @@ watch(isStaffView, () => {
     color: #7b7f8d;
   }
 
-  &__profile {
-    border-radius: 999px;
-  }
 }
 
 .hero--staff {

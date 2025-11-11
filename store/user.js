@@ -99,6 +99,20 @@ export const useUserStore = defineStore('user', {
         this.loading = false
       }
     },
+    async autoLogin() {
+      if (this.loading) {
+        return
+      }
+      if (this.token) {
+        await this.hydrateProfile()
+        return
+      }
+      try {
+        await this.exchangeToken()
+      } catch (error) {
+        console.warn('Silent login failed', error)
+      }
+    },
     async exchangeToken(options = {}) {
       const code = await getLoginCode(options)
       const data = await loginApi({ code })
