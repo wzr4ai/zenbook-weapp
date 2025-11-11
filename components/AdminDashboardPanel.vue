@@ -67,6 +67,13 @@ defineEmits<{
 
 const expandedDate = ref('')
 
+const formatLocalDate = (value: Date) => {
+  const year = value.getFullYear()
+  const month = String(value.getMonth() + 1).padStart(2, '0')
+  const day = String(value.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const buildDays = () => {
   const result: Array<{ date: string; label: string; calendar: string; appointments: any[] }> = []
   const base = new Date()
@@ -74,7 +81,7 @@ const buildDays = () => {
   for (let i = 0; i < 7; i += 1) {
     const date = new Date(base)
     date.setDate(base.getDate() + i)
-    const iso = date.toISOString().split('T')[0]
+    const iso = formatLocalDate(date)
     result.push({
       date: iso,
       label: buildLabel(i),

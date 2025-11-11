@@ -76,6 +76,13 @@ import { listAllPatients } from '../../api/admin'
 
 type PickerChangeEvent = { detail: { value: number } }
 
+const formatLocalDate = (value: Date) => {
+  const year = value.getFullYear()
+  const month = String(value.getMonth() + 1).padStart(2, '0')
+  const day = String(value.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const locations = ref<any[]>([])
 const technicians = ref<any[]>([])
 const services = ref<any[]>([])
@@ -90,7 +97,7 @@ const selectedOffering = computed(() => offerings.value[0] ?? null)
 const editingId = ref('')
 const form = reactive({
   patientId: '',
-  date: new Date().toISOString().split('T')[0],
+  date: formatLocalDate(new Date()),
   time: '09:00',
   notes: ''
 })
