@@ -35,12 +35,6 @@
       <view class="hint-text" v-if="!locationOptions.length || !technicianOptions.length">
         请先在“服务配置中心”创建地点与技师
       </view>
-      <view class="form-field">
-        <text class="form-field__label">参考周（用于日历映射）</text>
-        <picker mode="date" :value="referenceDate" @change="onReferenceDateChange">
-          <view class="picker-value">{{ referenceDate }}（周一至周日：{{ weekRangeLabel }}）</view>
-        </picker>
-      </view>
     </view>
 
     <view class="panel">
@@ -51,7 +45,7 @@
           <view v-for="item in filteredBusinessHours" :key="item.id" class="list-item">
             <view class="list-item__info">
               <text class="list-item__title">
-                周{{ weekdayLabel(item.day_of_week) }}（{{ formatRuleDate(item.rule_date, item.day_of_week) }}）
+                {{ formatRuleLabel(item.rule_date, item.day_of_week) }}
               </text>
               <view class="badge-group">
                 <text
@@ -72,16 +66,16 @@
         <view class="form-item">
           <text class="form-block-title">批量添加班次</text>
           <view class="form-field">
-            <text class="form-field__label">选择星期（可多选）</text>
+            <text class="form-field__label">选择日期（未来 7 天，可多选）</text>
             <view class="chip-group">
               <view
-                v-for="option in weekdayOptions"
+                v-for="option in dayOptions"
                 :key="option.value"
                 class="chip"
-                :class="{ 'chip--active': isWeekdaySelected(option.value) }"
-                @tap="toggleWeekday(option.value)"
+                :class="{ 'chip--active': isDateSelected(option.value) }"
+                @tap="toggleDate(option.value)"
               >
-                周{{ option.label }}
+                {{ option.value }} · {{ option.label }}
               </view>
             </view>
           </view>
@@ -106,85 +100,14 @@
       </template>
     </view>
 
-    <view class="panel">
-      <text class="panel__title">排班例外</text>
-      <view v-if="!selectionReady" class="empty">请选择地点和技师后再设置例外</view>
-      <template v-else>
-        <view v-if="filteredExceptions.length">
-          <view v-for="item in filteredExceptions" :key="item.id" class="list-item">
-            <view class="list-item__info">
-              <text class="list-item__title">{{ item.date }} {{ item.start }} - {{ item.end }}</text>
-              <text class="list-item__desc">{{ item.reason || '无备注' }}</text>
-            </view>
-            <button size="mini" type="warn" @tap="removeException(item.id)">删除</button>
-          </view>
-        </view>
-        <view v-else class="empty">当前组合暂无例外</view>
-
-        <view class="form-item">
-          <text class="form-block-title">新增例外</text>
-          <view class="form-field">
-            <text class="form-field__label">日期</text>
-            <picker mode="date" :value="exceptionForm.date" @change="(e) => (exceptionForm.date = e.detail.value)">
-              <view class="picker-value">{{ exceptionForm.date }}</view>
-            </picker>
-          </view>
-          <view class="form-field">
-            <text class="form-field__label">开始时间</text>
-            <picker mode="time" :value="exceptionForm.start" @change="(e) => (exceptionForm.start = e.detail.value)">
-              <view class="picker-value">{{ exceptionForm.start }}</view>
-            </picker>
-          </view>
-          <view class="form-field">
-            <text class="form-field__label">结束时间</text>
-            <picker mode="time" :value="exceptionForm.end" @change="(e) => (exceptionForm.end = e.detail.value)">
-              <view class="picker-value">{{ exceptionForm.end }}</view>
-            </picker>
-          </view>
-          <view class="form-field">
-            <text class="form-field__label">原因</text>
-            <input v-model="exceptionForm.reason" placeholder="可选" class="input" />
-          </view>
-          <button class="w-full" size="mini" type="primary" @tap="saveExceptionItem">保存例外</button>
-        </view>
-      </template>
-    </view>
   </scroll-view>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import {
-  listBusinessHours,
-  listExceptions,
-  saveBusinessHour,
-  updateBusinessHour,
-  saveException,
-  deleteBusinessHour,
-  deleteException
-} from '../../api/schedule'
+import { listBusinessHours, saveBusinessHour, updateBusinessHour, deleteBusinessHour } from '../../api/schedule'
 import { fetchLocations, fetchTechnicians } from '../../api/catalog'
-
-const weekdayOptions = [
-  { value: 'monday', label: '一', offset: 0 },
-  { value: 'tuesday', label: '二', offset: 1 },
-  { value: 'wednesday', label: '三', offset: 2 },
-  { value: 'thursday', label: '四', offset: 3 },
-  { value: 'friday', label: '五', offset: 4 },
-  { value: 'saturday', label: '六', offset: 5 },
-  { value: 'sunday', label: '日', offset: 6 }
-] as const
-
-type WeekdayValue = (typeof weekdayOptions)[number]['value']
-
-const weekdayOrderMap: Record<WeekdayValue, number> = weekdayOptions.reduce(
-  (acc, option) => {
-    acc[option.value] = option.offset
-    return acc
-  },
-  {} as Record<WeekdayValue, number>
-)
 
 const periodOptions = [
   { value: 'morning', label: '上午', range: '08:30 - 12:30', defaults: { start: '08:30', end: '12:30' } },
@@ -196,22 +119,66 @@ const periodDefaults = periodOptions.reduce<Record<string, { start: string; end:
   return acc
 }, {})
 
+type WeekdayValue = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
+type DayOption = { value: string; label: string; weekday: WeekdayValue }
+
+const weekdayOrder: WeekdayValue[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+const weekdayTextMap: Record<WeekdayValue, string> = {
+  monday: '一',
+  tuesday: '二',
+  wednesday: '三',
+  thursday: '四',
+  friday: '五',
+  saturday: '六',
+  sunday: '日'
+}
+const weekdayOrderMap: Record<WeekdayValue, number> = weekdayOrder.reduce(
+  (acc, value, index) => {
+    acc[value] = index
+    return acc
+  },
+  {} as Record<WeekdayValue, number>
+)
+
 const businessHours = ref<any[]>([])
-const exceptions = ref<any[]>([])
+const dayOptions = ref<DayOption[]>([])
 const locationOptions = ref<any[]>([])
 const technicianOptions = ref<any[]>([])
 const selectedLocationId = ref('')
 const selectedTechnicianId = ref('')
-const referenceDate = ref(new Date().toISOString().split('T')[0])
-const selectedWeekdays = ref<WeekdayValue[]>(weekdayOptions.slice(0, 5).map((item) => item.value))
+const selectedDates = ref<string[]>([])
 const selectedPeriods = ref<string[]>([periodOptions[0].value])
 
-const exceptionForm = reactive({
-  date: new Date().toISOString().split('T')[0],
-  start: periodDefaults['morning'].start,
-  end: periodDefaults['afternoon'].end,
-  reason: ''
-})
+const toISODate = (value: Date) => value.toISOString().split('T')[0]
+const weekdayFromDate = (value: Date): WeekdayValue => weekdayOrder[(value.getDay() + 6) % 7]
+
+const createDayOption = (offset: number): DayOption => {
+  const base = new Date()
+  base.setHours(0, 0, 0, 0)
+  base.setDate(base.getDate() + offset)
+  const iso = toISODate(base)
+  const weekday = weekdayFromDate(base)
+  return {
+    value: iso,
+    label: `周${weekdayTextMap[weekday]}`,
+    weekday
+  }
+}
+
+const refreshDayOptions = () => {
+  const options = Array.from({ length: 7 }, (_, index) => createDayOption(index))
+  dayOptions.value = options
+  const validSelections = selectedDates.value.filter((item) => options.some((option) => option.value === item))
+  if (validSelections.length) {
+    selectedDates.value = validSelections
+  } else if (options.length) {
+    selectedDates.value = [options[0].value]
+  } else {
+    selectedDates.value = []
+  }
+}
+
+refreshDayOptions()
 
 const selectedLocationName = computed(
   () => locationOptions.value.find((item) => item.id === selectedLocationId.value)?.name ?? ''
@@ -227,12 +194,6 @@ const filteredBusinessHours = computed(() =>
   )
 )
 
-const filteredExceptions = computed(() =>
-  exceptions.value.filter(
-    (item) => item.location_id === selectedLocationId.value && item.technician_id === selectedTechnicianId.value
-  )
-)
-
 const formatTime = (value?: string | null) => {
   if (!value) return '--'
   return value.slice(0, 5)
@@ -240,42 +201,26 @@ const formatTime = (value?: string | null) => {
 
 const hasSlot = (start?: string | null, end?: string | null) => Boolean(start && end)
 
-const weekdayLabel = (value: WeekdayValue) => weekdayOptions.find((item) => item.value === value)?.label ?? value
+const weekdayLabel = (value?: WeekdayValue | null) => (value ? weekdayTextMap[value] ?? value : '-')
 
-const getDateFromReference = (offset: number) => {
-  const base = new Date(`${referenceDate.value}T00:00:00`)
-  const jsDay = (base.getDay() + 6) % 7
-  base.setDate(base.getDate() - jsDay + offset)
-  return base
+const weekdayFromIsoDate = (value?: string | null): WeekdayValue | null => {
+  if (!value) return null
+  const date = new Date(`${value}T00:00:00`)
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+  return weekdayFromDate(date)
 }
 
-const weekDates = computed(() => {
-  const dates: Partial<Record<WeekdayValue, string>> = {}
-  for (const option of weekdayOptions) {
-    const date = getDateFromReference(option.offset)
-    dates[option.value] = date.toISOString().split('T')[0]
+const formatRuleLabel = (ruleDate?: string | null, weekday?: WeekdayValue) => {
+  if (!ruleDate) {
+    return '未设置日期'
   }
-  return dates as Record<WeekdayValue, string>
-})
-
-const weekRangeLabel = computed(() => {
-  const monday = weekDates.value['monday']
-  const sunday = weekDates.value['sunday']
-  return `${monday ?? '--'} 至 ${sunday ?? '--'}`
-})
-
-const formatRuleDate = (ruleDate?: string | null, weekday?: WeekdayValue) => {
-  if (ruleDate) {
-    return ruleDate
-  }
-  if (weekday) {
-    return weekDates.value[weekday] ?? '--'
-  }
-  return '--'
+  const resolvedWeekday = weekday ?? weekdayFromIsoDate(ruleDate)
+  return `周${weekdayLabel(resolvedWeekday)}（${ruleDate}）`
 }
 
 type PickerChangeEvent = { detail: { value: number } }
-type DatePickerChangeEvent = { detail: { value: string } }
 
 const onLocationChange = (event: PickerChangeEvent) => {
   const option = locationOptions.value[Number(event.detail.value)]
@@ -287,21 +232,17 @@ const onTechnicianChange = (event: PickerChangeEvent) => {
   selectedTechnicianId.value = option?.id ?? ''
 }
 
-const onReferenceDateChange = (event: DatePickerChangeEvent) => {
-  referenceDate.value = event.detail.value
-}
+const isDateSelected = (value: string) => selectedDates.value.includes(value)
 
-const isWeekdaySelected = (value: WeekdayValue) => selectedWeekdays.value.includes(value)
-
-const toggleWeekday = (value: WeekdayValue) => {
-  if (isWeekdaySelected(value)) {
-    if (selectedWeekdays.value.length === 1) {
+const toggleDate = (value: string) => {
+  if (isDateSelected(value)) {
+    if (selectedDates.value.length === 1) {
       uni.showToast({ title: '至少选择一天', icon: 'none' })
       return
     }
-    selectedWeekdays.value = selectedWeekdays.value.filter((item) => item !== value)
+    selectedDates.value = selectedDates.value.filter((item) => item !== value)
   } else {
-    selectedWeekdays.value = [...selectedWeekdays.value, value]
+    selectedDates.value = [...selectedDates.value, value]
   }
 }
 
@@ -343,16 +284,6 @@ const mapBusinessHour = (item: any) => ({
   end_time_pm: item.end_time_pm
 })
 
-const mapException = (item: any) => ({
-  id: item.exception_id,
-  location_id: item.location_id,
-  technician_id: item.technician_id,
-  date: item.date,
-  start: formatTime(item.start_time),
-  end: formatTime(item.end_time),
-  reason: item.reason || ''
-})
-
 const loadSelectors = async () => {
   const [locs, techs] = await Promise.all([fetchLocations(), fetchTechnicians()])
   locationOptions.value = locs
@@ -366,29 +297,27 @@ const loadSelectors = async () => {
 }
 
 const fetchData = async () => {
-  const [hours, exs] = await Promise.all([listBusinessHours(), listExceptions()])
+  const hours = await listBusinessHours()
   businessHours.value = hours.map(mapBusinessHour).sort((a, b) => {
     if (a.rule_date && b.rule_date) {
       return a.rule_date.localeCompare(b.rule_date)
     }
     return weekdayOrderMap[a.day_of_week] - weekdayOrderMap[b.day_of_week]
   })
-  exceptions.value = exs.map(mapException)
 }
 
 const saveHour = async () => {
   if (!ensureSelection()) return
+  if (!selectedDates.value.length) {
+    uni.showToast({ title: '请选择日期', icon: 'none' })
+    return
+  }
   const toCreate: any[] = []
   const toUpdate: { id: string; payload: Record<string, string> }[] = []
   let skipped = 0
   const periodField = { morning: 'am', afternoon: 'pm' } as const
-  const weekMap = weekDates.value
 
-  for (const weekday of selectedWeekdays.value) {
-    const targetDate = weekMap[weekday]
-    if (!targetDate) {
-      continue
-    }
+  for (const targetDate of selectedDates.value) {
     const existing = filteredBusinessHours.value.find((hour) => hour.rule_date === targetDate)
     if (!existing) {
       const payload: Record<string, any> = {
@@ -450,40 +379,8 @@ const removeHour = async (id: string) => {
   await fetchData()
 }
 
-const resetExceptionForm = () => {
-  exceptionForm.date = new Date().toISOString().split('T')[0]
-  exceptionForm.start = periodDefaults['morning'].start
-  exceptionForm.end = periodDefaults['afternoon'].end
-  exceptionForm.reason = ''
-}
-
-const saveExceptionItem = async () => {
-  if (!ensureSelection()) return
-  const payload: Record<string, any> = {
-    technician_id: selectedTechnicianId.value,
-    location_id: selectedLocationId.value,
-    date: exceptionForm.date,
-    is_available: false,
-    reason: exceptionForm.reason || undefined
-  }
-  if (exceptionForm.start) {
-    payload.start_time = exceptionForm.start
-  }
-  if (exceptionForm.end) {
-    payload.end_time = exceptionForm.end
-  }
-  await saveException(payload)
-  uni.showToast({ title: '已保存', icon: 'success' })
-  resetExceptionForm()
-  await fetchData()
-}
-
-const removeException = async (id: string) => {
-  await deleteException(id)
-  await fetchData()
-}
-
 onShow(async () => {
+  refreshDayOptions()
   await loadSelectors()
   await fetchData()
 })
