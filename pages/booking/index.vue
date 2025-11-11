@@ -11,7 +11,7 @@
       <view v-if="loadingSlots" class="panel__loading">加载可预约时段...</view>
       <TimeSlotGrid
         v-else
-        :slots="bookingStore.availability"
+        :slots="displaySlots"
         v-model="selectedSlot"
       />
     </view>
@@ -51,6 +51,24 @@ const selectedSlot = computed({
   set: (slot) => bookingStore.setSlot(slot)
 })
 const selectedOffering = computed(() => bookingStore.offerings[0])
+const displaySlots = computed(() => {
+  const slots = bookingStore.availability || []
+  const currentDate = selectedDate.value
+  if (!currentDate) {
+    return slots
+  }
+  const todayKey = formatDate(new Date())
+  const now = Date.now()
+  const isToday = currentDate === todayKey
+  return slots.map((slot) => {
+    const startTime = new Date(slot.start).getTime()
+    const isPast = isToday && !Number.isNaN(startTime) && startTime <= now
+    return {
+      ...slot,
+      disabled: Boolean(slot.disabled) || isPast
+    }
+  })
+})
 
 function formatDate(date: Date): string {
   const year = date.getFullYear()
@@ -142,6 +160,20 @@ watch(
       loadAvailability(bookingStore.selectedDate)
     }
   }
+)
+
+watch(
+  () => displaySlots.value,
+  (slots) => {
+    if (!bookingStore.selectedSlot) {
+      return
+    }
+    const active = slots.find((slot) => slot.start === bookingStore.selectedSlot?.start)
+    if (!active || active.disabled) {
+      bookingStore.setSlot(null)
+    }
+  },
+  { deep: true }
 )
 
 onMounted(() => {
