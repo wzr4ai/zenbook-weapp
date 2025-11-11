@@ -8,6 +8,10 @@
       <text class="stats__value">{{ pendingCount }}</text>
       <text class="stats__label">待服务</text>
     </view>
+    <view class="stats__item">
+      <text class="stats__value">{{ noShowCount }}</text>
+      <text class="stats__label">违约</text>
+    </view>
   </view>
 
   <view class="panel">
@@ -55,6 +59,7 @@ const props = defineProps<{
   appointments: any[]
   todayCount: number
   pendingCount: number
+  noShowCount: number
 }>()
 
 defineEmits<{

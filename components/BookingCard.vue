@@ -2,7 +2,7 @@
   <view class="booking-card">
     <view class="booking-card__header">
       <text class="booking-card__title">{{ title }}</text>
-      <text class="booking-card__status" :class="statusClass">{{ status }}</text>
+      <text class="booking-card__status" :class="statusClass">{{ statusLabel }}</text>
     </view>
     <view class="booking-card__body">
       <text class="booking-card__row">
@@ -36,10 +36,19 @@ const props = defineProps<{
 const STATUS_CLASS_MAP: Record<string, string> = {
   scheduled: 'booking-card__status--scheduled',
   completed: 'booking-card__status--completed',
-  cancelled: 'booking-card__status--cancelled'
+  cancelled: 'booking-card__status--cancelled',
+  no_show: 'booking-card__status--no_show'
+}
+
+const STATUS_LABEL_MAP: Record<string, string> = {
+  scheduled: '待服务',
+  completed: '已完成',
+  cancelled: '已取消',
+  no_show: '违约'
 }
 
 const statusClass = computed(() => STATUS_CLASS_MAP[props.status] ?? '')
+const statusLabel = computed(() => STATUS_LABEL_MAP[props.status] ?? props.status)
 
 const formatDate = (value: string) => value?.split('T')[0] ?? ''
 const formatTime = (value: string) => {
@@ -92,6 +101,11 @@ const formatTime = (value: string) => {
     &--cancelled {
       background: rgba(255, 71, 87, 0.12);
       color: #c94455;
+    }
+
+    &--no_show {
+      background: rgba(250, 140, 22, 0.12);
+      color: #c46a00;
     }
   }
 

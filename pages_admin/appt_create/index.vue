@@ -55,6 +55,26 @@
     <button class="primary-btn" type="primary" :disabled="!canSubmit" @tap="submit">
       {{ editingId ? '保存修改' : '创建预约' }}
     </button>
+
+    <view class="panel" v-if="editingId">
+      <text class="panel__title">状态操作</text>
+      <view class="status-row">
+        <text>当前状态：{{ statusLabel }}</text>
+        <text v-if="originalAppointment?.start_time">
+          开始时间：{{ formatDateTime(originalAppointment?.start_time) }}
+        </text>
+      </view>
+      <view class="status-actions">
+        <button size="mini" type="primary" :disabled="!canMarkStatus" @tap="markStatus('completed')">
+          标记完成
+        </button>
+        <button size="mini" type="warn" :disabled="!canMarkStatus" @tap="markStatus('no_show')">
+          标记违约
+        </button>
+        <button size="mini" @tap="deleteAppointment">删除预约</button>
+      </view>
+      <text class="hint-text">预约开始后才能标记完成或违约，删除操作随时可用</text>
+    </view>
   </view>
 </template>
 
@@ -70,6 +90,7 @@ import {
 import {
   adminCreateAppointment,
   adminUpdateAppointment,
+  adminDeleteAppointment,
   listAllAppointments
 } from '../../api/appointments'
 import { listAllPatients } from '../../api/admin'
@@ -88,6 +109,7 @@ const technicians = ref<any[]>([])
 const services = ref<any[]>([])
 const offerings = ref<any[]>([])
 const patients = ref<any[]>([])
+const originalAppointment = ref<any | null>(null)
 
 const selectedLocation = ref<any | null>(null)
 const selectedTechnician = ref<any | null>(null)
@@ -102,6 +124,17 @@ const form = reactive({
   notes: ''
 })
 
+const STATUS_LABEL_MAP: Record<string, string> = {
+  scheduled: '待服务',
+  completed: '已完成',
+  no_show: '违约'
+}
+
+const formatDateTime = (value?: string) => {
+  if (!value) return ''
+  return value.replace('T', ' ').slice(0, 16)
+}
+
 const canSubmit = computed(() => {
   return (
     Boolean(form.patientId) &&
@@ -110,6 +143,15 @@ const canSubmit = computed(() => {
     Boolean(form.time)
   )
 })
+
+const canMarkStatus = computed(() => {
+  if (!editingId.value) return false
+  const start = originalAppointment.value?.start_time
+  if (!start) return false
+  return new Date(start).getTime() <= Date.now()
+})
+
+const statusLabel = computed(() => STATUS_LABEL_MAP[originalAppointment.value?.status ?? ''] ?? '未知')
 
 const selectedPatient = computed(() =>
   patients.value.find((item) => item.id === form.patientId)
@@ -169,7 +211,11 @@ const submit = async () => {
 const hydrateFromAppointment = async (id: string) => {
   const all = await listAllAppointments()
   const detail = all.find((item) => item.id === id)
-  if (!detail) return
+  if (!detail) {
+    originalAppointment.value = null
+    return
+  }
+  originalAppointment.value = detail
   form.patientId = detail.patient_id
   form.notes = detail.notes ?? ''
   form.date = detail.start_time?.split('T')[0] ?? form.date
@@ -194,6 +240,34 @@ const hydrateFromAppointment = async (id: string) => {
       offerings.value.unshift(target)
     }
   }
+}
+
+const markStatus = async (status: 'completed' | 'no_show') => {
+  if (!editingId.value) return
+  if (!canMarkStatus.value) {
+    uni.showToast({ title: '需待预约开始后再标记', icon: 'none' })
+    return
+  }
+  await adminUpdateAppointment(editingId.value, { status })
+  uni.showToast({
+    title: status === 'completed' ? '已标记完成' : '已标记违约',
+    icon: 'success'
+  })
+  await hydrateFromAppointment(editingId.value)
+}
+
+const deleteAppointment = () => {
+  if (!editingId.value) return
+  uni.showModal({
+    title: '删除预约',
+    content: '确认删除该预约？此操作不可撤销',
+    success: async ({ confirm }) => {
+      if (!confirm) return
+      await adminDeleteAppointment(editingId.value)
+      uni.showToast({ title: '已删除', icon: 'success' })
+      uni.navigateBack()
+    }
+  })
 }
 
 const bootstrap = async () => {
@@ -266,5 +340,21 @@ onLoad(async (options) => {
 .primary-btn {
   width: 100%;
   margin-top: 32rpx;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  color: #666;
+  margin-bottom: 12rpx;
+}
+
+.status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
 }
 </style>

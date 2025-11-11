@@ -17,7 +17,7 @@
         <button
           size="mini"
           type="warn"
-          v-if="item.status === 'scheduled'"
+          v-if="canCancel(item)"
           @tap.stop="cancel(item.id)"
         >
           取消
@@ -44,6 +44,13 @@ import { listMyAppointments, cancelAppointment } from '../../api/appointments'
 
 const appointments = ref<any[]>([])
 
+const isFuture = (value?: string) => {
+  if (!value) return false
+  return new Date(value).getTime() > Date.now()
+}
+
+const canCancel = (item: any) => item?.status === 'scheduled' && isFuture(item?.start_time)
+
 const fetchAppointments = async () => {
   appointments.value = await listMyAppointments()
   uni.stopPullDownRefresh()
@@ -56,7 +63,7 @@ const goDetail = (id: string) => {
 const cancel = (id: string) => {
   uni.showModal({
     title: '取消预约',
-    content: '确定取消该预约吗？',
+    content: '仅可在开始前取消预约，确认删除该预约吗？',
     success: async ({ confirm }) => {
       if (!confirm) return
       await cancelAppointment(id)

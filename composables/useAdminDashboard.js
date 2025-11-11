@@ -34,8 +34,8 @@ export const useAdminDashboard = (autoFetch = true) => {
   const pendingCount = computed(
     () => appointments.value.filter((item) => item.status === 'scheduled').length
   )
-  const cancelledCount = computed(
-    () => appointments.value.filter((item) => item.status === 'cancelled').length
+  const noShowCount = computed(
+    () => appointments.value.filter((item) => item.status === 'no_show').length
   )
 
   if (autoFetch) {
@@ -48,6 +48,6 @@ export const useAdminDashboard = (autoFetch = true) => {
     fetchAppointments,
     todayCount,
     pendingCount,
-    cancelledCount
+    noShowCount
   }
 }

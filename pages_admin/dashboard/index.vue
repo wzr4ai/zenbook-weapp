@@ -4,7 +4,7 @@
       :appointments="appointments"
       :today-count="todayCount"
       :pending-count="pendingCount"
-      :cancelled-count="cancelledCount"
+      :no-show-count="noShowCount"
       @create="goApptCreate"
       @schedule="goSchedule"
       @catalog="goCatalog"
@@ -22,7 +22,7 @@ const {
   appointments,
   todayCount,
   pendingCount,
-  cancelledCount
+  noShowCount
 } = useAdminDashboard()
 
 const goApptCreate = () => {

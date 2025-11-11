@@ -15,8 +15,8 @@ export const listMyAppointments = (params = {}) =>
 
 export const cancelAppointment = (id) =>
   request({
-    url: `/appointments/${id}/cancel`,
-    method: 'POST'
+    url: `/appointments/${id}`,
+    method: 'DELETE'
   })
 
 // Admin endpoints
@@ -38,4 +38,10 @@ export const adminUpdateAppointment = (id, payload) =>
     url: `/admin/appointments/${id}`,
     method: 'PUT',
     data: payload
+  })
+
+export const adminDeleteAppointment = (id) =>
+  request({
+    url: `/admin/appointments/${id}`,
+    method: 'DELETE'
   })

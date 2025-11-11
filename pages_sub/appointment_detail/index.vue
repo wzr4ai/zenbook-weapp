@@ -8,11 +8,11 @@
       <text class="row">
         时间：{{ detail.start_time }} - {{ detail.end_time }}
       </text>
-      <text class="row">状态：{{ detail.status }}</text>
+      <text class="row">状态：{{ formatStatus(detail.status) }}</text>
       <text class="row">备注：{{ detail.notes || '无' }}</text>
     </view>
     <button
-      v-if="detail.status === 'scheduled'"
+      v-if="canCancel"
       class="primary-btn"
       type="warn"
       @tap="handleCancel"
@@ -26,12 +26,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { listMyAppointments, cancelAppointment } from '../../api/appointments'
 
 const detail = ref<any | null>(null)
 const currentId = ref('')
+
+const STATUS_LABEL_MAP: Record<string, string> = {
+  scheduled: '待服务',
+  completed: '已完成',
+  cancelled: '已取消',
+  no_show: '违约'
+}
+
+const isFuture = (value?: string) => {
+  if (!value) return false
+  return new Date(value).getTime() > Date.now()
+}
+
+const formatStatus = (value?: string) => STATUS_LABEL_MAP[value || ''] ?? value ?? ''
+const canCancel = computed(() => detail.value?.status === 'scheduled' && isFuture(detail.value?.start_time))
 
 const fetchDetail = async (id: string) => {
   const items = await listMyAppointments()
@@ -46,7 +61,9 @@ const handleCancel = () => {
       if (!confirm) return
       await cancelAppointment(currentId.value)
       uni.showToast({ title: '已取消', icon: 'none' })
-      fetchDetail(currentId.value)
+      setTimeout(() => {
+        uni.navigateBack()
+      }, 300)
     }
   })
 }
