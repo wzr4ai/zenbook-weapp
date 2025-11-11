@@ -8,20 +8,6 @@
       <text class="stats__value">{{ pendingCount }}</text>
       <text class="stats__label">待服务</text>
     </view>
-    <view class="stats__item">
-      <text class="stats__value">{{ cancelledCount }}</text>
-      <text class="stats__label">已取消</text>
-    </view>
-  </view>
-
-  <view class="panel shortcuts">
-    <text class="panel__title">快捷操作</text>
-    <view class="shortcut-grid">
-      <button class="shortcut" @tap="$emit('create')">手动预约</button>
-      <button class="shortcut" @tap="$emit('schedule')">排班管理</button>
-      <button class="shortcut" @tap="$emit('catalog')">服务管理</button>
-      <button class="shortcut" @tap="$emit('users')">账户/就诊人</button>
-    </view>
   </view>
 
   <view class="panel">
@@ -69,7 +55,6 @@ const props = defineProps<{
   appointments: any[]
   todayCount: number
   pendingCount: number
-  cancelledCount: number
 }>()
 
 defineEmits<{
@@ -189,17 +174,6 @@ const formatRange = (start?: string, end?: string) => {
   &__label {
     color: #888;
   }
-}
-
-.shortcut-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16rpx;
-}
-
-.shortcut {
-  background: #f5f6fb;
-  border-radius: 12rpx;
 }
 
 .day {
