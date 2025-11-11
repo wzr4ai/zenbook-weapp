@@ -100,6 +100,7 @@
           <text class="list-item__meta">
             时长：{{ svc.default_duration_minutes ?? svc.duration }} 分钟 · 并发：{{ svc.concurrency_level ?? svc.concurrency }}
           </text>
+          <text class="list-item__meta">权重：{{ svc.weight ?? 0 }}</text>
         </view>
         <view class="list-item__actions">
           <button size="mini" plain type="primary" @tap="editService(svc)">编辑</button>
@@ -122,6 +123,10 @@
         <view class="form-field">
           <text class="form-field__label">并发数量</text>
           <input v-model.number="serviceForm.concurrency" type="number" placeholder="1" class="input" />
+        </view>
+        <view class="form-field">
+          <text class="form-field__label">排序权重（数字越大越靠前）</text>
+          <input v-model.number="serviceForm.weight" type="number" placeholder="0" class="input" />
         </view>
         <view class="form-actions">
           <button size="mini" type="primary" @tap="saveService">
@@ -229,7 +234,7 @@ const technicianForm = reactive({
   afternoon_quota_limit: '',
   restricted_by_quota: false
 })
-const serviceForm = reactive({ name: '', description: '', duration: 60, concurrency: 1 })
+const serviceForm = reactive({ name: '', description: '', duration: 60, concurrency: 1, weight: 0 })
 const offeringForm = reactive({ price: 0, duration: 0 })
 const offeringSelections = reactive<{ location: any | null; technician: any | null; service: any | null }>({
   location: null,
@@ -436,16 +441,18 @@ const cancelTechnicianEdit = () => {
 }
 
 const resetServiceForm = () => {
-  Object.assign(serviceForm, { name: '', description: '', duration: 60, concurrency: 1 })
+  Object.assign(serviceForm, { name: '', description: '', duration: 60, concurrency: 1, weight: 0 })
   editingServiceId.value = ''
 }
 
 const saveService = async () => {
+  const normalizedWeight = Number(serviceForm.weight)
   const payload = {
     name: serviceForm.name,
     description: serviceForm.description || undefined,
     default_duration_minutes: Number(serviceForm.duration) || 60,
-    concurrency_level: Number(serviceForm.concurrency) || 1
+    concurrency_level: Number(serviceForm.concurrency) || 1,
+    weight: Number.isFinite(normalizedWeight) ? normalizedWeight : 0
   }
   if (!payload.name.trim()) {
     uni.showToast({ title: '请输入服务名称', icon: 'none' })
@@ -471,7 +478,8 @@ const editService = (service: any) => {
     name: service.name,
     description: service.description ?? '',
     duration: service.default_duration_minutes ?? 60,
-    concurrency: service.concurrency_level ?? 1
+    concurrency: service.concurrency_level ?? 1,
+    weight: service.weight ?? 0
   })
 }
 

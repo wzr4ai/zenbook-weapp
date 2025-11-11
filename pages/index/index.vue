@@ -123,6 +123,60 @@ const canProceed = computed(() => {
   )
 })
 
+const ensureSelectionsValid = () => {
+  if (
+    bookingStore.selectedLocation &&
+    !locations.value.some((item) => item.id === bookingStore.selectedLocation?.id)
+  ) {
+    bookingStore.setLocation(null)
+  }
+  if (
+    bookingStore.selectedService &&
+    !services.value.some((item) => item.id === bookingStore.selectedService?.id)
+  ) {
+    bookingStore.setService(null)
+  }
+}
+
+const findPreferredLocation = () => {
+  const preferredId = userStore.userInfo?.default_location_id
+  if (!preferredId) return null
+  return locations.value.find((item) => item.id === preferredId) ?? null
+}
+
+const findTopWeightedService = () => {
+  if (!services.value.length) {
+    return null
+  }
+  const sorted = [...services.value].sort((a, b) => {
+    const weightDiff = Number(b.weight ?? 0) - Number(a.weight ?? 0)
+    if (weightDiff !== 0) {
+      return weightDiff
+    }
+    return (a.name || '').localeCompare(b.name || '')
+  })
+  return sorted[0] ?? null
+}
+
+const applyCustomerDefaults = () => {
+  if (isStaffView.value) {
+    return
+  }
+  ensureSelectionsValid()
+  if (!bookingStore.selectedLocation) {
+    const preferred = findPreferredLocation()
+    if (preferred) {
+      bookingStore.setLocation(preferred)
+    }
+  }
+  if (!bookingStore.selectedService) {
+    const weighted = findTopWeightedService()
+    if (weighted) {
+      bookingStore.setService(weighted)
+    }
+  }
+}
+
 const goAppointments = () => {
   uni.navigateTo({ url: '/pages_sub/appointments/index' })
 }
@@ -206,6 +260,7 @@ const loadCatalog = async () => {
     technicians.value = tech
     services.value = svc
     catalogLoaded.value = true
+    applyCustomerDefaults()
   } catch (error) {
     console.error('failed to load catalog', error)
   } finally {
@@ -227,6 +282,7 @@ onMounted(() => {
 
 onShow(() => {
   ensureViewData()
+  applyCustomerDefaults()
 })
 
 watch(isStaffView, () => {
@@ -234,8 +290,18 @@ watch(isStaffView, () => {
     fetchAppointments()
   } else {
     loadCatalog()
+    applyCustomerDefaults()
   }
 })
+
+watch(
+  () => userStore.userInfo?.default_location_id,
+  () => {
+    if (!isStaffView.value && !bookingStore.selectedLocation) {
+      applyCustomerDefaults()
+    }
+  }
+)
 </script>
 
 <style scoped lang="scss">
