@@ -2,7 +2,11 @@
   <view class="page">
     <view class="profile-card">
       <view class="profile-card__info">
-        <text class="profile-card__name">
+        <text
+          class="profile-card__name"
+          :class="{ 'profile-card__name--editable': userStore.isLoggedIn }"
+          @tap="promptDisplayName"
+        >
           {{ userStore.userInfo?.display_name || '未登录' }}
         </text>
         <text class="profile-card__role">
@@ -24,22 +28,6 @@
       <text class="panel__title">常用功能</text>
       <button class="panel-btn" @tap="goAppointments">我的预约</button>
       <button class="panel-btn" @tap="goPatients">就诊人管理</button>
-    </view>
-
-    <view class="panel" v-if="userStore.isLoggedIn">
-      <text class="panel__title">个人资料</text>
-      <view class="form-field">
-        <text class="form-field__label">昵称</text>
-        <input
-          class="input"
-          v-model="displayName"
-          maxlength="20"
-          placeholder="请输入昵称"
-        />
-      </view>
-      <button class="panel-btn" type="primary" :disabled="savingName" @tap="saveDisplayName">
-        {{ savingName ? '保存中...' : '保存昵称' }}
-      </button>
     </view>
 
     <view class="panel" v-if="userStore.isStaffView">
@@ -73,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { useUserStore } from '../../store/user'
 
 const userStore = useUserStore()
@@ -97,33 +85,31 @@ const roleLabel = computed(() => {
   return `${roleMap[userStore.viewRole] || '客户'}视角`
 })
 
-const displayName = ref(userStore.userInfo?.display_name ?? '')
-const savingName = ref(false)
-
-watch(
-  () => userStore.userInfo?.display_name,
-  (value) => {
-    displayName.value = value ?? ''
-  }
-)
-
 const handleAuth = async () => {
   if (!userStore.isLoggedIn) {
     await userStore.login()
   }
 }
 
-const saveDisplayName = async () => {
-  if (!displayName.value.trim()) {
-    uni.showToast({ title: '请输入昵称', icon: 'none' })
+const promptDisplayName = () => {
+  if (!userStore.isLoggedIn) {
     return
   }
-  savingName.value = true
-  try {
-    await userStore.updateDisplayName(displayName.value)
-  } finally {
-    savingName.value = false
-  }
+  uni.showModal({
+    title: '修改昵称',
+    editable: true,
+    placeholderText: '请输入昵称',
+    content: userStore.userInfo?.display_name || '',
+    success: async ({ confirm, content }) => {
+      if (!confirm) return
+      const next = (content || '').trim()
+      if (!next) {
+        uni.showToast({ title: '昵称不能为空', icon: 'none' })
+        return
+      }
+      await userStore.updateDisplayName(next)
+    }
+  })
 }
 
 const goAppointments = () => {
@@ -208,22 +194,8 @@ const switchRole = (role: string) => {
   border-radius: 12rpx;
 }
 
-.form-field {
-  margin-bottom: 16rpx;
-
-  &__label {
-    display: block;
-    margin-bottom: 8rpx;
-    font-size: 26rpx;
-    color: #666;
-  }
-}
-
-.input {
-  width: 100%;
-  padding: 20rpx;
-  border-radius: 12rpx;
-  background: #f5f6fb;
+.profile-card__name--editable {
+  border-bottom: 2rpx dashed rgba(0, 0, 0, 0.1);
 }
 
 .role-switch {
