@@ -149,14 +149,19 @@ const selectedTechnicianId = ref('')
 const selectedDates = ref<string[]>([])
 const selectedPeriods = ref<string[]>([periodOptions[0].value])
 
-const toISODate = (value: Date) => value.toISOString().split('T')[0]
+const formatLocalDate = (value: Date) => {
+  const year = value.getFullYear()
+  const month = String(value.getMonth() + 1).padStart(2, '0')
+  const day = String(value.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 const weekdayFromDate = (value: Date): WeekdayValue => weekdayOrder[(value.getDay() + 6) % 7]
 
 const createDayOption = (offset: number): DayOption => {
   const base = new Date()
   base.setHours(0, 0, 0, 0)
   base.setDate(base.getDate() + offset)
-  const iso = toISODate(base)
+  const iso = formatLocalDate(base)
   const weekday = weekdayFromDate(base)
   return {
     value: iso,
