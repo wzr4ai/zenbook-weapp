@@ -82,11 +82,13 @@ export const useUserStore = defineStore('user', {
       this.loading = true
       try {
         await this.exchangeToken()
+        await this.hydrateProfile()
         uni.showToast({ title: '登录成功', icon: 'success' })
       } catch (error) {
         if (shouldRetryLogin(error)) {
           try {
             await this.exchangeToken({ allowFallback: false })
+            await this.hydrateProfile()
             uni.showToast({ title: '登录成功', icon: 'success' })
             return
           } catch (retryError) {
@@ -110,6 +112,7 @@ export const useUserStore = defineStore('user', {
       }
       try {
         await this.exchangeToken()
+        await this.hydrateProfile()
       } catch (error) {
         logger.warn('Silent login failed', error)
       }
@@ -118,7 +121,7 @@ export const useUserStore = defineStore('user', {
       const code = await getLoginCode(options)
       const data = await loginApi({ code })
       this.token = data.token
-      this.userInfo = data.userInfo
+      //this.userInfo = data.userInfo
       this.impersonateRole = ''
       return data
     },
