@@ -84,13 +84,13 @@
         "pagePath": "pages/index/index",
         "text": "预约",
         "iconPath": "static/tab-home.png",
-        "selectedIconPath": "static/tab-home.png"
+        "selectedIconPath": "static/tab-home_active.png"
       },
       {
         "pagePath": "pages/me/index",
         "text": "我的",
         "iconPath": "static/tab-me.png",
-        "selectedIconPath": "static/tab-me.png"
+        "selectedIconPath": "static/tab-me_active.png"
       }
     ]
   },
