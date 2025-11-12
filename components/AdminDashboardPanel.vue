@@ -131,7 +131,21 @@ const nextSevenDays = computed(() => {
 watch(
   nextSevenDays,
   (days) => {
-    expandedDate.value = days[0]?.date ?? ''
+    // 检查列表是否为空
+    if (!days || days.length === 0) {
+      expandedDate.value = ''
+      return
+    }
+
+    const currentHour = new Date().getHours()
+
+    // 如果是晚上 6 点 (18:00) 或更晚，并且明天 (days[1]) 存在
+    if (currentHour >= 18 && days[1]) {
+      expandedDate.value = days[1].date
+    } else {
+      // 否则，默认展开今天 (days[0])
+      expandedDate.value = days[0].date
+    }
   },
   { immediate: true }
 )
