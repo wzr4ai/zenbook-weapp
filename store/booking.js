@@ -45,9 +45,27 @@ export const useBookingStore = defineStore('booking', {
       this.selectedSlot = null
       this.availabilityLoading = false
     },
+    clearOfferings() {
+      this.offerings = []
+    },
     async loadOfferings(filters) {
+      if (
+        !filters?.location_id ||
+        !filters?.service_id ||
+        !filters?.technician_id
+      ) {
+        this.clearOfferings()
+        return
+      }
       this.clearAvailability()
       const data = await fetchOfferings(filters)
+      const matchesSelection =
+        this.selectedLocation?.id === filters.location_id &&
+        this.selectedTechnician?.id === filters.technician_id &&
+        this.selectedService?.id === filters.service_id
+      if (!matchesSelection) {
+        return
+      }
       this.offerings = Array.isArray(data) ? data : []
     },
     async loadAvailability(params) {

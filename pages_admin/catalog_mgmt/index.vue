@@ -50,6 +50,7 @@
           <view class="badge-group">
             <text class="tag tag--soft">上午配额：{{ formatQuotaLabel(tech.morning_quota_limit, tech.restricted_by_quota) }}</text>
             <text class="tag tag--soft">下午配额：{{ formatQuotaLabel(tech.afternoon_quota_limit, tech.restricted_by_quota) }}</text>
+            <text class="tag tag--soft">权重：{{ tech.weight ?? 0 }}</text>
           </view>
         </view>
         <view class="list-item__actions">
@@ -77,6 +78,10 @@
         <view class="form-field">
           <text class="form-field__label">下午配额 (0 表示不限)</text>
           <input v-model="technicianForm.afternoon_quota_limit" type="number" placeholder="0" class="input" />
+        </view>
+        <view class="form-field">
+          <text class="form-field__label">展示权重 (数字越大排序越靠前)</text>
+          <input v-model.number="technicianForm.weight" type="number" placeholder="0" class="input" />
         </view>
         <text class="hint-text">留空表示沿用系统默认配额，0 表示不限制，>0 为自定义限制。</text>
         <view class="inline-actions">
@@ -232,7 +237,8 @@ const technicianForm = reactive({
   avatar_url: '',
   morning_quota_limit: '',
   afternoon_quota_limit: '',
-  restricted_by_quota: false
+  restricted_by_quota: false,
+  weight: 0
 })
 const serviceForm = reactive({ name: '', description: '', duration: 60, concurrency: 1, weight: 0 })
 const offeringForm = reactive({ price: 0, duration: 0 })
@@ -269,6 +275,17 @@ const normalizeQuotaInput = (value: string | number | null | undefined): number 
 
 const toInputValue = (value: number | null | undefined): string => {
   return value === null || value === undefined ? '' : String(value)
+}
+
+const normalizeWeight = (value: string | number | null | undefined): number => {
+  if (value === '' || value === null || value === undefined) {
+    return 0
+  }
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) {
+    return 0
+  }
+  return Math.max(0, Math.floor(numeric))
 }
 
 const onOfferingLocationChange = (event: PickerChangeEvent) => {
@@ -379,7 +396,8 @@ const resetTechnicianForm = () => {
     avatar_url: '',
     morning_quota_limit: '',
     afternoon_quota_limit: '',
-    restricted_by_quota: false
+    restricted_by_quota: false,
+    weight: 0
   })
   editingTechnicianId.value = ''
 }
@@ -412,7 +430,8 @@ const saveTechnician = async () => {
     avatar_url: technicianForm.avatar_url || undefined,
     restricted_by_quota: restrictedFlag,
     morning_quota_limit: morningLimit,
-    afternoon_quota_limit: afternoonLimit
+    afternoon_quota_limit: afternoonLimit,
+    weight: normalizeWeight(technicianForm.weight)
   }
   if (editingTechnicianId.value) {
     await adminUpdateTechnician(editingTechnicianId.value, payload)
@@ -432,7 +451,8 @@ const editTechnician = (technician: any) => {
     avatar_url: technician.avatar_url ?? '',
     morning_quota_limit: toInputValue(technician.morning_quota_limit),
     afternoon_quota_limit: toInputValue(technician.afternoon_quota_limit),
-    restricted_by_quota: Boolean(technician.restricted_by_quota)
+    restricted_by_quota: Boolean(technician.restricted_by_quota),
+    weight: Number(technician.weight ?? 0)
   })
 }
 

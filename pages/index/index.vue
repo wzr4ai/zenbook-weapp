@@ -43,16 +43,7 @@
     </view>
 
     <view class="card">
-      <text class="card__title">② 选择技师</text>
-      <picker mode="selector" :range="technicians" range-key="display_name" @change="onTechnicianChange">
-        <view class="picker-value">
-          {{ bookingStore.selectedTechnician?.display_name ?? '请选择' }}
-        </view>
-      </picker>
-    </view>
-
-    <view class="card">
-      <text class="card__title">③ 选择服务</text>
+      <text class="card__title">② 选择服务</text>
       <picker mode="selector" :range="services" range-key="name" @change="onServiceChange">
         <view class="picker-value">
           {{ bookingStore.selectedService?.name ?? '请选择' }}
@@ -81,7 +72,6 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import {
   fetchLocations,
-  fetchTechnicians,
   fetchServices
 } from '../../api/catalog'
 import { useBookingStore } from '../../store/booking'
@@ -97,7 +87,6 @@ const userStore = useUserStore()
 const loading = ref(false)
 const catalogLoaded = ref(false)
 const locations = ref<any[]>([])
-const technicians = ref<any[]>([])
 const services = ref<any[]>([])
 const isStaffView = computed(() => userStore.isStaffView)
 
@@ -112,7 +101,6 @@ const {
 const canProceed = computed(() => {
   return (
     Boolean(bookingStore.selectedLocation) &&
-    Boolean(bookingStore.selectedTechnician) &&
     Boolean(bookingStore.selectedService)
   )
 })
@@ -201,42 +189,26 @@ const goBooking = async () => {
     uni.showToast({ title: '请先完成选择', icon: 'none' })
     return
   }
-  await loadOfferings()
+  bookingStore.setTechnician(null)
+  bookingStore.clearOfferings()
+  bookingStore.clearAvailability()
   uni.navigateTo({ url: '/pages/booking/index' })
 }
 
 const onLocationChange = (event: PickerChangeEvent) => {
   const item = locations.value?.[Number(event.detail.value)]
   bookingStore.setLocation(item)
-  loadOfferings()
-}
-
-const onTechnicianChange = (event: PickerChangeEvent) => {
-  const item = technicians.value?.[Number(event.detail.value)]
-  bookingStore.setTechnician(item)
-  loadOfferings()
+  bookingStore.setTechnician(null)
+  bookingStore.clearOfferings()
+  bookingStore.clearAvailability()
 }
 
 const onServiceChange = (event: PickerChangeEvent) => {
   const item = services.value?.[Number(event.detail.value)]
   bookingStore.setService(item)
-  loadOfferings()
-}
-
-const loadOfferings = async () => {
-  if (!canProceed.value) {
-    return
-  }
-  loading.value = true
-  try {
-    await bookingStore.loadOfferings({
-      location_id: bookingStore.selectedLocation?.id,
-      technician_id: bookingStore.selectedTechnician?.id,
-      service_id: bookingStore.selectedService?.id
-    })
-  } finally {
-    loading.value = false
-  }
+  bookingStore.setTechnician(null)
+  bookingStore.clearOfferings()
+  bookingStore.clearAvailability()
 }
 
 const loadCatalog = async () => {
@@ -245,13 +217,8 @@ const loadCatalog = async () => {
   }
   loading.value = true
   try {
-    const [loc, tech, svc] = await Promise.all([
-      fetchLocations(),
-      fetchTechnicians(),
-      fetchServices()
-    ])
+    const [loc, svc] = await Promise.all([fetchLocations(), fetchServices()])
     locations.value = loc
-    technicians.value = tech
     services.value = svc
     catalogLoaded.value = true
     applyCustomerDefaults()

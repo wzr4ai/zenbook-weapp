@@ -7,6 +7,23 @@
     />
 
     <view class="panel">
+      <text class="panel__title">选择技师</text>
+      <view v-if="techniciansLoading" class="panel__loading">加载技师...</view>
+      <picker
+        v-else-if="technicians.length"
+        mode="selector"
+        :range="technicians"
+        range-key="display_name"
+        @change="onTechnicianChange"
+      >
+        <view class="picker-value">
+          {{ bookingStore.selectedTechnician?.display_name ?? '请选择技师' }}
+        </view>
+      </picker>
+      <view v-else class="empty-hint">暂无可用技师</view>
+    </view>
+
+    <view class="panel">
       <text class="panel__title">可用时间</text>
       <view v-if="loadingSlots" class="panel__loading">加载可预约时段...</view>
       <TimeSlotGrid
@@ -37,15 +54,21 @@
 </template>
 
 <script setup lang="ts">
+import { onShow } from '@dcloudio/uni-app'
 import { computed, onMounted, ref, watch } from 'vue'
 import Calendar from '../../components/Calendar.vue'
 import TimeSlotGrid from '../../components/TimeSlotGrid.vue'
+import { fetchTechnicians } from '../../api/catalog'
 import { useBookingStore } from '../../store/booking'
+
+type PickerChangeEvent = { detail: { value: number } }
 
 const bookingStore = useBookingStore()
 const days = ref(generateDays())
 const selectedDate = ref(bookingStore.selectedDate || days.value[0]?.date)
 const loadingSlots = ref(false)
+const technicians = ref<any[]>([])
+const techniciansLoading = ref(false)
 const selectedSlot = computed({
   get: () => bookingStore.selectedSlot,
   set: (slot) => bookingStore.setSlot(slot)
@@ -69,6 +92,50 @@ const displaySlots = computed(() => {
     }
   })
 })
+
+const ensureTechnicianSelection = () => {
+  if (!technicians.value.length) {
+    if (bookingStore.selectedTechnician) {
+      bookingStore.setTechnician(null)
+    }
+    return
+  }
+  const currentId = bookingStore.selectedTechnician?.id
+  const matched = currentId
+    ? technicians.value.find((item) => item.id === currentId)
+    : null
+  if (matched) {
+    // Sync latest fields such as weight/avatar
+    bookingStore.setTechnician(matched)
+    return
+  }
+  bookingStore.setTechnician(technicians.value[0])
+}
+
+const loadTechnicians = async () => {
+  if (techniciansLoading.value) {
+    return
+  }
+  techniciansLoading.value = true
+  try {
+    const data = await fetchTechnicians()
+    technicians.value = Array.isArray(data) ? data : []
+    ensureTechnicianSelection()
+  } catch (error) {
+    console.error('failed to load technicians', error)
+    technicians.value = []
+    bookingStore.setTechnician(null)
+  } finally {
+    techniciansLoading.value = false
+  }
+}
+
+const onTechnicianChange = (event: PickerChangeEvent) => {
+  const next = technicians.value?.[Number(event.detail.value)]
+  if (next) {
+    bookingStore.setTechnician(next)
+  }
+}
 
 function formatDate(date: Date): string {
   const year = date.getFullYear()
@@ -113,6 +180,23 @@ const canLoadAvailability = computed(
     )
 )
 
+const refreshOfferingsAndAvailability = async () => {
+  if (!canLoadAvailability.value) {
+    bookingStore.clearOfferings()
+    bookingStore.clearAvailability()
+    return
+  }
+  const filters = {
+    location_id: bookingStore.selectedLocation?.id,
+    technician_id: bookingStore.selectedTechnician?.id,
+    service_id: bookingStore.selectedService?.id
+  }
+  await bookingStore.loadOfferings(filters)
+  if (bookingStore.selectedDate) {
+    await loadAvailability(bookingStore.selectedDate)
+  }
+}
+
 const loadAvailability = async (date: string) => {
   if (!date) return
   bookingStore.setDate(date)
@@ -156,10 +240,9 @@ watch(
     bookingStore.selectedService?.id
   ],
   () => {
-    if (bookingStore.selectedDate) {
-      loadAvailability(bookingStore.selectedDate)
-    }
-  }
+    void refreshOfferingsAndAvailability()
+  },
+  { immediate: true }
 )
 
 watch(
@@ -177,9 +260,19 @@ watch(
 )
 
 onMounted(() => {
-  if (!bookingStore.selectedLocation) {
+  if (!bookingStore.selectedLocation || !bookingStore.selectedService) {
     uni.navigateBack()
+    return
   }
+  loadTechnicians()
+})
+
+onShow(() => {
+  if (!bookingStore.selectedLocation || !bookingStore.selectedService) {
+    uni.navigateBack()
+    return
+  }
+  loadTechnicians()
 })
 </script>
 
@@ -212,6 +305,18 @@ onMounted(() => {
   color: #666;
   font-size: 26rpx;
   line-height: 1.6;
+}
+
+.picker-value {
+  padding: 20rpx;
+  background: #f5f6fb;
+  border-radius: 12rpx;
+}
+
+.empty-hint {
+  padding: 16rpx 0;
+  color: #999;
+  font-size: 26rpx;
 }
 
 .primary-btn {
