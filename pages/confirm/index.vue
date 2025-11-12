@@ -54,6 +54,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useBookingStore } from '../../store/booking'
 import { listPatients } from '../../api/patients'
 import { createAppointment } from '../../api/appointments'
+import { logger } from '../../utils/logger'
 
 type PickerChangeEvent = { detail: { value: number } }
 type TextEvent = { detail: { value: string } }
@@ -111,7 +112,8 @@ const submit = async () => {
     bookingStore.reset()
     uni.redirectTo({ url: '/pages_sub/appointments/index' })
   } catch (error) {
-    console.error('failed to create appointment', error)
+    logger.error('failed to create appointment', error)
+    uni.showToast({ title: '预约提交失败，请稍后重试', icon: 'none' })
   } finally {
     loading.value = false
   }

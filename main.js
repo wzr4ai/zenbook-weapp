@@ -8,7 +8,15 @@ import { createPersistPlugin } from './store/plugins/persist'
 export function createApp() {
   const app = createSSRApp(App)
   const pinia = createPinia()
-  pinia.use(createPersistPlugin())
+  pinia.use(
+    createPersistPlugin({
+      reducers: {
+        user: (state) => ({
+          impersonateRole: state?.impersonateRole || ''
+        })
+      }
+    })
+  )
   app.use(pinia)
 
   setupNavigationGuards(pinia)

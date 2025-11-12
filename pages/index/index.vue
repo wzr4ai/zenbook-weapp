@@ -79,6 +79,7 @@ import { useUserStore } from '../../store/user'
 import AdminDashboardPanel from '../../components/AdminDashboardPanel.vue'
 import { useAdminDashboard } from '../../composables/useAdminDashboard'
 import { CLINIC_NAME } from '../../constants/brand'
+import { logger } from '../../utils/logger'
 
 type PickerChangeEvent = { detail: { value: number } }
 
@@ -229,7 +230,8 @@ const loadCatalog = async () => {
     catalogLoaded.value = true
     applyCustomerDefaults()
   } catch (error) {
-    console.error('failed to load catalog', error)
+    logger.error('failed to load catalog', error)
+    uni.showToast({ title: '加载服务失败，请稍后重试', icon: 'none' })
   } finally {
     loading.value = false
   }

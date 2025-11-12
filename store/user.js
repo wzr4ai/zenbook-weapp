@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { login as loginApi } from '../api/auth'
 import { fetchProfile, updateProfile } from '../api/users'
+import { logger } from '../utils/logger'
 
 const DEV_LOGIN_CODE_KEY = 'zenbook__dev_login_code'
 
@@ -18,7 +19,7 @@ const resolveDevLoginCode = () => {
     uni.setStorageSync(DEV_LOGIN_CODE_KEY, generated)
     return generated
   } catch (error) {
-    console.warn('Failed to persist dev login code', error)
+    logger.warn('Failed to persist dev login code', error)
     return 'dev-openid'
   }
 }
@@ -89,10 +90,10 @@ export const useUserStore = defineStore('user', {
             uni.showToast({ title: '登录成功', icon: 'success' })
             return
           } catch (retryError) {
-            console.error('Login retry failed', retryError)
+            logger.error('Login retry failed', retryError)
           }
         }
-        console.error('Login failed', error)
+        logger.error('Login failed', error)
         const hint = error?.message || '登录失败'
         uni.showToast({ title: hint, icon: 'none' })
       } finally {
@@ -110,7 +111,7 @@ export const useUserStore = defineStore('user', {
       try {
         await this.exchangeToken()
       } catch (error) {
-        console.warn('Silent login failed', error)
+        logger.warn('Silent login failed', error)
       }
     },
     async exchangeToken(options = {}) {
@@ -130,7 +131,7 @@ export const useUserStore = defineStore('user', {
         this.userInfo = profile
         this.impersonateRole = ''
       } catch (error) {
-        console.warn('Failed to hydrate profile', error)
+        logger.warn('Failed to hydrate profile', error)
       }
     },
     async updateDisplayName(name) {

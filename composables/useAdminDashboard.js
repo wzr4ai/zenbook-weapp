@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { listAllAppointments } from '../api/appointments'
+import { logger } from '../utils/logger'
 
 const formatLocalDate = (value) => {
   const year = value.getFullYear()
@@ -18,7 +19,8 @@ export const useAdminDashboard = (autoFetch = true) => {
     try {
       appointments.value = await listAllAppointments()
     } catch (error) {
-      console.error('failed to fetch admin appointments', error)
+      logger.error('failed to fetch admin appointments', error)
+      uni.showToast({ title: '预约列表加载失败', icon: 'none' })
     } finally {
       loading.value = false
     }

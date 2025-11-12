@@ -60,6 +60,7 @@ import Calendar from '../../components/Calendar.vue'
 import TimeSlotGrid from '../../components/TimeSlotGrid.vue'
 import { fetchTechnicians } from '../../api/catalog'
 import { useBookingStore } from '../../store/booking'
+import { logger } from '../../utils/logger'
 
 type PickerChangeEvent = { detail: { value: number } }
 
@@ -134,7 +135,8 @@ const loadTechnicians = async () => {
     technicians.value = Array.isArray(data) ? data : []
     ensureTechnicianSelection()
   } catch (error) {
-    console.error('failed to load technicians', error)
+    logger.error('failed to load technicians', error)
+    uni.showToast({ title: '技师列表加载失败', icon: 'none' })
     technicians.value = []
     bookingStore.setTechnician(null)
   } finally {
