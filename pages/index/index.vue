@@ -28,7 +28,7 @@
     <view class="hero">
       <view>
         <text class="hero__subtitle">中医推拿 · 线上预约</text>
-        <text class="hero__title">ZenBook 养生馆</text>
+        <text class="hero__title">{{ brandName }} 养生馆</text>
         <text class="hero__hint">三步完成预约，技师日程实时同步</text>
       </view>
     </view>
@@ -78,11 +78,13 @@ import { useBookingStore } from '../../store/booking'
 import { useUserStore } from '../../store/user'
 import AdminDashboardPanel from '../../components/AdminDashboardPanel.vue'
 import { useAdminDashboard } from '../../composables/useAdminDashboard'
+import { CLINIC_NAME } from '../../constants/brand'
 
 type PickerChangeEvent = { detail: { value: number } }
 
 const bookingStore = useBookingStore()
 const userStore = useUserStore()
+const brandName = CLINIC_NAME
 
 const loading = ref(false)
 const catalogLoaded = ref(false)
@@ -184,6 +186,10 @@ const editAppointment = (id: string) => {
   uni.navigateTo({ url: `/pages_admin/appt_create/index?id=${id}` })
 }
 
+const applyNavTitle = () => {
+  uni.setNavigationBarTitle({ title: `${brandName} 预约` })
+}
+
 const goBooking = async () => {
   if (!canProceed.value) {
     uni.showToast({ title: '请先完成选择', icon: 'none' })
@@ -235,6 +241,7 @@ const ensureViewData = () => {
   } else {
     loadCatalog()
   }
+  applyNavTitle()
 }
 
 onMounted(() => {
