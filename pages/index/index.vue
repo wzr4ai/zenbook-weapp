@@ -3,7 +3,7 @@
   <view class="page" v-if="userStore.isStaffView">
     <view class="hero hero--staff">
       <view>
-        <text class="hero__subtitle">管理视角</text>
+        <text class="hero__subtitle">管理员</text>
         <text class="hero__title">
           {{ userStore.userInfo?.display_name || '管理员' }}
         </text>

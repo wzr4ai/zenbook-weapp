@@ -82,7 +82,16 @@ const roleLabel = computed(() => {
   if (!userStore.isLoggedIn) {
     return '点击授权登录'
   }
-  return `${roleMap[userStore.viewRole] || '客户'}视角`
+  
+  const roleName = roleMap[userStore.viewRole] || '客户'
+  
+  // 仅当视图角色为 admin 时才显示 "视角"
+  if (userStore.viewRole === 'admin') {
+    return `${roleName}视角`
+  }
+  
+  // 技师和客户视图只显示角色名
+  return roleName
 })
 
 const handleAuth = async () => {
