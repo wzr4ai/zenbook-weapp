@@ -60,11 +60,6 @@
       </picker>
     </view>
 
-    <view class="card card--summary" v-if="selectedOffering">
-      <text>{{ selectedOffering.service_name }} · {{ selectedOffering.duration }}min</text>
-      <text class="card__price">¥{{ selectedOffering.price }}</text>
-    </view>
-
     <button
       class="primary-btn"
       type="primary"
@@ -104,7 +99,6 @@ const catalogLoaded = ref(false)
 const locations = ref<any[]>([])
 const technicians = ref<any[]>([])
 const services = ref<any[]>([])
-const selectedOffering = computed(() => bookingStore.offerings[0] ?? null)
 const isStaffView = computed(() => userStore.isStaffView)
 
 const {
@@ -361,17 +355,6 @@ watch(
     margin-bottom: 12rpx;
   }
 
-  &__price {
-    font-size: 32rpx;
-    color: #111;
-    font-weight: 600;
-  }
-
-  &--summary {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
 }
 
 .picker-value {
