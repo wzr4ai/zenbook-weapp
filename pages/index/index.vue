@@ -1,16 +1,6 @@
-
 <template>
   <view class="page" v-if="userStore.isStaffView">
-    <view class="hero hero--staff">
-      <view>
-        <text class="hero__subtitle">管理员</text>
-        <text class="hero__title">
-          {{ userStore.userInfo?.display_name || '管理员' }}
-        </text>
-        <text class="hero__hint">预约一览 · 快速操作</text>
-      </view>
-    </view>
-    <view class="admin-panel">
+    <view>
       <AdminDashboardPanel
         :appointments="appointments"
         :today-count="todayCount"
@@ -303,19 +293,6 @@ watch(
     color: #7b7f8d;
   }
 
-}
-
-.hero--staff {
-  margin-bottom: 8rpx;
-
-  .hero__title {
-    font-size: 28rpx;
-    color: #4b5563;
-  }
-}
-
-.admin-panel {
-  margin-top: 24rpx;
 }
 
 .card {
