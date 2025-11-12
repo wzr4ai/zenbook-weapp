@@ -86,9 +86,21 @@ const displaySlots = computed(() => {
   return slots.map((slot) => {
     const startTime = new Date(slot.start).getTime()
     const isPast = isToday && !Number.isNaN(startTime) && startTime <= now
+    const serverReason = typeof slot.reason === 'string' && slot.reason.length ? slot.reason : ''
+    const previouslyDisabled = Boolean(slot.disabled)
+    const disabled = previouslyDisabled || Boolean(serverReason) || isPast
+    let statusText = ''
+    if (serverReason) {
+      statusText = serverReason
+    } else if (isPast) {
+      statusText = '已过期'
+    } else if (previouslyDisabled) {
+      statusText = '不可用'
+    }
     return {
       ...slot,
-      disabled: Boolean(slot.disabled) || isPast
+      disabled,
+      statusText
     }
   })
 })

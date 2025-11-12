@@ -21,10 +21,13 @@
           }"
           @tap="handleSelect(slot)"
         >
-          <text class="slot-grid__time">
-            {{ formatTime(slot.start) }} - {{ formatTime(slot.end) }}
-          </text>
-          <text v-if="slot.reason" class="slot-grid__reason">{{ slot.reason }}</text>
+          <view class="slot-grid__item-header">
+            <text class="slot-grid__time">
+              {{ formatTime(slot.start) }} - {{ formatTime(slot.end) }}
+            </text>
+            <text v-if="slot.disabled" class="slot-grid__badge">不可用</text>
+          </view>
+          <text v-if="slot.statusText" class="slot-grid__reason">{{ slot.statusText }}</text>
         </view>
       </view>
     </view>
@@ -40,6 +43,7 @@ interface SlotMeta {
   end: string
   disabled?: boolean
   reason?: string | null
+  statusText?: string
 }
 
 import { computed } from 'vue'
@@ -113,6 +117,9 @@ const handleSelect = (slot: SlotMeta) => {
     border-radius: 12rpx;
     background: #f4f6fb;
     border: 2rpx solid transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 8rpx;
 
     &--active {
       border-color: #007aff;
@@ -120,14 +127,34 @@ const handleSelect = (slot: SlotMeta) => {
     }
 
     &--disabled {
-      opacity: 0.4;
+      background: #f8fafc;
+      border-color: #e2e8f0;
     }
+  }
+
+  &__item--disabled &__time {
+    color: #94a3b8;
   }
 
   &__time {
     display: block;
     font-size: 28rpx;
     color: #111;
+  }
+
+  &__item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12rpx;
+  }
+
+  &__badge {
+    font-size: 22rpx;
+    color: #6b7280;
+    background: #e5e7eb;
+    padding: 2rpx 14rpx;
+    border-radius: 999px;
   }
 
   &__reason {
