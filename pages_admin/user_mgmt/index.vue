@@ -10,7 +10,7 @@
     </view>
 
     <view class="panel">
-      <text class="panel__title">就诊人</text>
+      <text class="panel__title">顾客</text>
       <view v-for="patient in patients" :key="patient.id" class="item">
         <text class="item__title">{{ patient.name }} · {{ patient.relation }}</text>
         <text class="item__sub">

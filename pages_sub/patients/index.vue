@@ -1,7 +1,7 @@
 <template>
   <view class="page">
     <view class="panel">
-      <text class="panel__title">就诊人列表</text>
+      <text class="panel__title">顾客列表</text>
       <view v-for="patient in patients" :key="patient.id" class="patient">
         <view>
           <text class="patient__name">
@@ -14,11 +14,11 @@
           <button size="mini" type="warn" @tap="remove(patient)">删除</button>
         </view>
       </view>
-      <view v-if="!patients.length" class="empty">暂无就诊人，先添加一个</view>
+      <view v-if="!patients.length" class="empty">暂无顾客，先添加一个</view>
     </view>
 
     <view class="panel">
-      <text class="panel__title">{{ form.id ? '编辑就诊人' : '新增就诊人' }}</text>
+      <text class="panel__title">{{ form.id ? '编辑顾客' : '新增顾客' }}</text>
       <view class="form-item">
         <text>姓名</text>
         <input v-model="form.name" placeholder="请输入姓名" />

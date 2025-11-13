@@ -11,7 +11,7 @@
     </view>
 
     <view class="panel">
-      <text class="panel__title">就诊人</text>
+      <text class="panel__title">顾客</text>
       <picker
         mode="selector"
         :range="patients"
@@ -19,11 +19,11 @@
         @change="onPatientChange"
       >
         <view class="picker-value">
-          {{ currentPatient?.name ?? '选择就诊人' }}
+          {{ currentPatient?.name ?? '选择顾客' }}
         </view>
       </picker>
       <button class="link-btn" size="mini" @tap="goPatients">
-        去管理就诊人
+        去管理顾客
       </button>
     </view>
 
@@ -31,7 +31,7 @@
       <text class="panel__title">备注 (可选)</text>
       <textarea
         class="textarea"
-        placeholder="症状、偏好时间等"
+        placeholder="身体情况、偏好时间等"
         :value="bookingStore.notes"
         @input="onNotesChange"
         maxlength="120"

@@ -17,7 +17,7 @@
   <view class="page" v-else>
     <view class="hero">
       <view>
-        <text class="hero__subtitle">中医推拿 · 线上预约</text>
+        <text class="hero__subtitle">传统推拿 · 线上预约</text>
         <text class="hero__title">{{ brandName }} 养生馆</text>
         <text class="hero__hint">三步完成预约，技师日程实时同步</text>
       </view>
@@ -52,7 +52,7 @@
 
     <view class="links">
       <button size="mini" @tap="goAppointments">我的预约</button>
-      <button size="mini" @tap="goPatients">就诊人管理</button>
+      <button size="mini" @tap="goPatients">顾客管理</button>
     </view>
   </view>
 </template>

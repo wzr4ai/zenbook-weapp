@@ -33,7 +33,7 @@
       "pages": [
         {
           "path": "patients/index",
-          "style": { "navigationBarTitleText": "就诊人管理" }
+          "style": { "navigationBarTitleText": "顾客管理" }
         },
         {
           "path": "appointments/index",
@@ -69,7 +69,7 @@
         },
         {
           "path": "user_mgmt/index",
-          "style": { "navigationBarTitleText": "账户 / 就诊人" }
+          "style": { "navigationBarTitleText": "账户 / 顾客" }
         }
       ]
     }

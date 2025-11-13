@@ -27,7 +27,7 @@
     <view class="panel">
       <text class="panel__title">常用功能</text>
       <button class="panel-btn" @tap="goAppointments">我的预约</button>
-      <button class="panel-btn" @tap="goPatients">就诊人管理</button>
+      <button class="panel-btn" @tap="goPatients">顾客管理</button>
     </view>
 
     <view class="panel" v-if="userStore.isStaffView">
@@ -36,7 +36,7 @@
       <button class="panel-btn" @tap="goApptCreate">手动预约</button>
       <button class="panel-btn" @tap="goSchedule">排班管理</button>
       <button class="panel-btn" @tap="goCatalog">服务管理</button>
-      <button class="panel-btn" @tap="goUsers">账户/就诊人</button>
+      <button class="panel-btn" @tap="goUsers">账户/顾客</button>
     </view>
 
     <view class="panel" v-if="userStore.actualRole === 'admin'">

@@ -53,7 +53,7 @@ hbx-cli build mp-weixin --minimize
 | `pages/index` | Tab 第一页：客户视角为预约入口；管理员/技师视角为预约管理面板 |
 | `pages/me` | Tab 第二页：“我的”视图，含身份切换（管理员专享）与快捷入口 |
 | `pages/booking` | 展示日历与时间槽，选槽后进入确认页 |
-| `pages/confirm` | 选择就诊人、填写备注并提交预约 |
+| `pages/confirm` | 选择顾客、填写备注并提交预约 |
 | `pages_sub/appointments` | 个人预约列表，点击到详情并允许取消 |
 | `pages_admin/dashboard` | 管理员预约总览，可跳转手动预约 |
 

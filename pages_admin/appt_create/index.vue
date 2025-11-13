@@ -3,9 +3,9 @@
     <view class="panel">
       <text class="panel__title">{{ editingId ? '编辑预约' : '手动预约' }}</text>
       <view class="form-item">
-        <text>患者</text>
+        <text>顾客</text>
         <picker mode="selector" :range="patients" range-key="name" @change="onPatientChange">
-          <view class="picker-value">{{ selectedPatient?.name ?? '选择就诊人' }}</view>
+          <view class="picker-value">{{ selectedPatient?.name ?? '选择顾客' }}</view>
         </picker>
       </view>
 
