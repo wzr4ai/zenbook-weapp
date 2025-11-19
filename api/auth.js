@@ -6,3 +6,10 @@ export const login = (payload) =>
     method: 'POST',
     data: payload
   })
+
+export const phoneLogin = (payload) =>
+  request({
+    url: '/auth/login/phone',
+    method: 'POST',
+    data: payload
+  })

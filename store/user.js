@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
-import { login as loginApi } from '../api/auth'
+import { login as loginApi, phoneLogin as phoneLoginApi } from '../api/auth'
 import { fetchProfile, updateProfile } from '../api/users'
 import { logger } from '../utils/logger'
+import { isH5Platform } from '../constants/platform'
 
 const DEV_LOGIN_CODE_KEY = 'zenbook__dev_login_code'
 
@@ -102,12 +103,33 @@ export const useUserStore = defineStore('user', {
         this.loading = false
       }
     },
+    async loginWithPhone(payload) {
+      if (this.loading) {
+        return
+      }
+      this.loading = true
+      try {
+        const data = await phoneLoginApi(payload)
+        this.setSessionFromResponse(data)
+        await this.hydrateProfile()
+        uni.showToast({ title: '登录成功', icon: 'success' })
+      } catch (error) {
+        logger.error('Phone login failed', error)
+        const hint = error?.message || '登录失败'
+        uni.showToast({ title: hint, icon: 'none' })
+      } finally {
+        this.loading = false
+      }
+    },
     async autoLogin() {
       if (this.loading) {
         return
       }
       if (this.token) {
         await this.hydrateProfile()
+        return
+      }
+      if (isH5Platform) {
         return
       }
       try {
@@ -120,10 +142,19 @@ export const useUserStore = defineStore('user', {
     async exchangeToken(options = {}) {
       const code = await getLoginCode(options)
       const data = await loginApi({ code })
-      this.token = data.token
-      //this.userInfo = data.userInfo
-      this.impersonateRole = ''
+      this.setSessionFromResponse(data)
       return data
+    },
+    setSessionFromResponse(data) {
+      if (!data) {
+        this.token = ''
+        this.userInfo = null
+        this.impersonateRole = ''
+        return
+      }
+      this.token = data.token
+      this.userInfo = data.user_info ?? null
+      this.impersonateRole = ''
     },
     async hydrateProfile() {
       if (!this.token) {

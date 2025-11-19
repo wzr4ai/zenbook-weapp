@@ -13,15 +13,35 @@
           {{ roleLabel }}
         </text>
       </view>
-      <button
-        v-if="!userStore.isLoggedIn"
-        type="primary"
-        size="mini"
-        class="profile-card__btn"
-        @tap="handleAuth"
-      >
-        微信授权登录
-      </button>
+      <view v-if="!userStore.isLoggedIn" class="profile-card__auth">
+        <view v-if="isH5" class="profile-card__phone-login">
+          <input
+            class="phone-login__input"
+            type="tel"
+            placeholder="请输入手机号"
+            v-model="loginPhoneNumber"
+          />
+          <button
+            class="phone-login__btn"
+            type="primary"
+            size="mini"
+            :disabled="!canPhoneLogin"
+            @tap="handlePhoneLogin"
+          >
+            手机号登录
+          </button>
+          <text class="phone-login__divider">或</text>
+        </view>
+        <button
+          type="primary"
+          size="mini"
+          class="profile-card__btn"
+          :disabled="userStore.loading"
+          @tap="handleAuth"
+        >
+          微信授权登录
+        </button>
+      </view>
     </view>
 
     <view class="panel">
@@ -61,10 +81,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useUserStore } from '../../store/user'
+import { isH5Platform } from '../../constants/platform'
 
 const userStore = useUserStore()
+const loginPhoneNumber = ref('')
+const isH5 = isH5Platform
+const canPhoneLogin = computed(() => {
+  const trimmed = (loginPhoneNumber.value || '').trim()
+  return Boolean(trimmed) && !userStore.loading
+})
 
 const roleMap: Record<string, string> = {
   admin: '管理员',
@@ -97,6 +124,21 @@ const roleLabel = computed(() => {
 const handleAuth = async () => {
   if (!userStore.isLoggedIn) {
     await userStore.login()
+  }
+}
+
+const handlePhoneLogin = async () => {
+  const trimmed = (loginPhoneNumber.value || '').trim()
+  if (!trimmed) {
+    uni.showToast({ title: '请输入手机号', icon: 'none' })
+    return
+  }
+  if (userStore.loading) {
+    return
+  }
+  await userStore.loginWithPhone({ phone: trimmed })
+  if (userStore.isLoggedIn) {
+    loginPhoneNumber.value = ''
   }
 }
 
@@ -165,8 +207,9 @@ const switchRole = (role: string) => {
   border-radius: 20rpx;
   padding: 28rpx;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 18rpx;
+  align-items: stretch;
   margin-bottom: 24rpx;
   box-shadow: 0 10rpx 40rpx rgba(0, 0, 0, 0.05);
 
@@ -183,6 +226,47 @@ const switchRole = (role: string) => {
   &__btn {
     border-radius: 999px;
   }
+
+  &__auth {
+    flex: 1;
+    margin-top: 24rpx;
+    display: flex;
+    flex-direction: column;
+    gap: 16rpx;
+    align-items: stretch;
+  }
+
+  &__phone-login {
+    width: 100%;
+    padding: 20rpx;
+    border-radius: 18rpx;
+    border: 1rpx solid rgba(0, 0, 0, 0.08);
+    background: #fdfdfd;
+    box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 14rpx;
+  }
+
+  &__phone-login .phone-login__btn {
+    width: 100%;
+  }
+}
+
+.phone-login__input {
+  border-radius: 12rpx;
+  border: 1rpx solid rgba(0, 0, 0, 0.15);
+  padding: 18rpx;
+  font-size: 28rpx;
+  background: #fbfbfb;
+  appearance: none;
+  width: 100%;
+}
+
+.phone-login__divider {
+  text-align: center;
+  color: #999;
+  font-size: 26rpx;
 }
 
 .panel {
