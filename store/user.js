@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { login as loginApi, phoneLogin as phoneLoginApi } from '../api/auth'
+import { login as loginApi, phoneLogin as phoneLoginApi, sendSmsCode } from '../api/auth'
 import { fetchProfile, updateProfile } from '../api/users'
 import { logger } from '../utils/logger'
 import { isH5Platform } from '../constants/platform'
@@ -121,6 +121,14 @@ export const useUserStore = defineStore('user', {
         this.loading = false
       }
     },
+    async requestPhoneCode(payload) {
+      try {
+        await sendSmsCode({ phone: payload.phone })
+      } catch (error) {
+        logger.error('Request phone code failed', error)
+        throw error
+      }
+    },
     async autoLogin() {
       if (this.loading) {
         return
@@ -183,6 +191,11 @@ export const useUserStore = defineStore('user', {
       const profile = await updateProfile({ display_name: trimmed })
       this.userInfo = profile
       uni.showToast({ title: '已更新昵称', icon: 'success' })
+    },
+    logout() {
+      this.token = ''
+      this.userInfo = null
+      this.impersonateRole = ''
     },
     setToken(token) {
       this.token = token

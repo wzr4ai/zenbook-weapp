@@ -13,3 +13,10 @@ export const phoneLogin = (payload) =>
     method: 'POST',
     data: payload
   })
+
+export const sendSmsCode = (payload) =>
+  request({
+    url: '/auth/sms',
+    method: 'POST',
+    data: payload
+  })

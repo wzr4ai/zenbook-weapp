@@ -21,6 +21,23 @@
             placeholder="请输入手机号"
             v-model="loginPhoneNumber"
           />
+          <view class="phone-login__code-row">
+            <input
+              class="phone-login__code-input"
+              type="tel"
+              placeholder="验证码"
+              v-model="smsCode"
+            />
+            <button
+              class="phone-login__code-btn"
+              type="primary"
+              size="mini"
+              :disabled="codeCountdown > 0"
+              @tap="handleSendCode"
+            >
+              {{ codeButtonText }}
+            </button>
+          </view>
           <button
             class="phone-login__btn"
             type="primary"
@@ -40,6 +57,16 @@
           @tap="handleAuth"
         >
           微信授权登录
+        </button>
+      </view>
+      <view v-if="isH5 && userStore.isLoggedIn" class="profile-card__logout">
+        <button
+          type="default"
+          size="mini"
+          class="profile-card__btn"
+          @tap="handleLogout"
+        >
+          退出登录
         </button>
       </view>
     </view>
@@ -81,17 +108,26 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import { useUserStore } from '../../store/user'
 import { isH5Platform } from '../../constants/platform'
 
 const userStore = useUserStore()
 const loginPhoneNumber = ref('')
+const smsCode = ref('')
+const codeCountdown = ref(0)
 const isH5 = isH5Platform
+let countdownTimer: ReturnType<typeof setInterval> | undefined
+
 const canPhoneLogin = computed(() => {
-  const trimmed = (loginPhoneNumber.value || '').trim()
-  return Boolean(trimmed) && !userStore.loading
+  const trimmedPhone = (loginPhoneNumber.value || '').trim()
+  const trimmedCode = (smsCode.value || '').trim()
+  return Boolean(trimmedPhone && trimmedCode) && !userStore.loading
 })
+
+const codeButtonText = computed(() =>
+  codeCountdown.value > 0 ? `${codeCountdown.value}s后重发` : '获取验证码'
+)
 
 const roleMap: Record<string, string> = {
   admin: '管理员',
@@ -109,15 +145,13 @@ const roleLabel = computed(() => {
   if (!userStore.isLoggedIn) {
     return '点击授权登录'
   }
-  
+
   const roleName = roleMap[userStore.viewRole] || '客户'
-  
-  // 仅当视图角色为 admin 时才显示 "视角"
+
   if (userStore.viewRole === 'admin') {
     return `${roleName}视角`
   }
-  
-  // 技师和客户视图只显示角色名
+
   return roleName
 })
 
@@ -128,18 +162,56 @@ const handleAuth = async () => {
 }
 
 const handlePhoneLogin = async () => {
-  const trimmed = (loginPhoneNumber.value || '').trim()
-  if (!trimmed) {
+  const trimmedPhone = (loginPhoneNumber.value || '').trim()
+  const trimmedCode = (smsCode.value || '').trim()
+  if (!trimmedPhone) {
     uni.showToast({ title: '请输入手机号', icon: 'none' })
+    return
+  }
+  if (!trimmedCode) {
+    uni.showToast({ title: '请输入验证码', icon: 'none' })
     return
   }
   if (userStore.loading) {
     return
   }
-  await userStore.loginWithPhone({ phone: trimmed })
+  await userStore.loginWithPhone({ phone: trimmedPhone, code: trimmedCode })
   if (userStore.isLoggedIn) {
     loginPhoneNumber.value = ''
+    smsCode.value = ''
   }
+}
+
+const handleSendCode = async () => {
+  const trimmedPhone = (loginPhoneNumber.value || '').trim()
+  if (!trimmedPhone) {
+    uni.showToast({ title: '请输入手机号', icon: 'none' })
+    return
+  }
+  if (codeCountdown.value > 0) {
+    return
+  }
+  try {
+    await userStore.requestPhoneCode({ phone: trimmedPhone })
+    uni.showToast({ title: '验证码已发送', icon: 'success' })
+    codeCountdown.value = 60
+    countdownTimer = setInterval(() => {
+      codeCountdown.value -= 1
+      if (codeCountdown.value <= 0 && countdownTimer) {
+        clearInterval(countdownTimer)
+        countdownTimer = undefined
+        codeCountdown.value = 0
+      }
+    }, 1000)
+  } catch (error) {
+    const hint = error?.message || '短信发送失败'
+    uni.showToast({ title: hint, icon: 'none' })
+  }
+}
+
+const handleLogout = () => {
+  userStore.logout()
+  uni.showToast({ title: '已退出登录', icon: 'none' })
 }
 
 const promptDisplayName = () => {
@@ -162,6 +234,12 @@ const promptDisplayName = () => {
     }
   })
 }
+
+onUnmounted(() => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+  }
+})
 
 const goAppointments = () => {
   uni.navigateTo({ url: '/pages_sub/appointments/index' })
@@ -267,6 +345,34 @@ const switchRole = (role: string) => {
   text-align: center;
   color: #999;
   font-size: 26rpx;
+}
+
+.phone-login__code-row {
+  display: flex;
+  gap: 16rpx;
+  align-items: stretch;
+}
+
+.phone-login__code-input {
+  flex: 1;
+  border-radius: 12rpx;
+  border: 1rpx solid rgba(0, 0, 0, 0.15);
+  padding: 18rpx;
+  font-size: 28rpx;
+  background: #fbfbfb;
+  appearance: none;
+}
+
+.phone-login__code-btn {
+  flex: 0 0 auto;
+  padding: 0 24rpx;
+  border-radius: 12rpx;
+}
+
+.profile-card__logout {
+  margin-top: 20rpx;
+  display: flex;
+  justify-content: center;
 }
 
 .panel {
